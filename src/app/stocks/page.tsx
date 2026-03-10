@@ -16,6 +16,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 import { useMarketData } from '@/hooks/useMarketData';
+import { getStockLogoUrl } from '@/lib/stock-logos';
 import type { StockCache } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -136,6 +137,32 @@ function StatPill({
 
 function StockLogo({ symbol }: { symbol: string }) {
   const bg = getLogoColor(symbol);
+  const logoUrl = getStockLogoUrl(symbol);
+  const [imgError, setImgError] = useState(false);
+
+  if (logoUrl && !imgError) {
+    return (
+      <div
+        className="flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center"
+        style={{
+          width: 36,
+          height: 36,
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-light)',
+        }}
+      >
+        <img
+          src={logoUrl}
+          alt={symbol}
+          width={24}
+          height={24}
+          onError={() => setImgError(true)}
+          style={{ objectFit: 'contain' }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className="flex-shrink-0 flex items-center justify-center rounded-full font-bold text-white text-xs"

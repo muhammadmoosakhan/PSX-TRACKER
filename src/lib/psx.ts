@@ -175,17 +175,17 @@ function parseHTMLIndices(html: string): PSXIndex[] {
       cells.push(stripHTML(cellMatch[1]).trim());
     }
 
-    // Indices table: Name, Current, Change, Change%, High, Low
+    // PSX indices table columns: Name, High, Low, Current, Change, Change%
     if (cells.length >= 4 && cells[0] && !cells[0].includes('INDEX') && !cells[0].includes('Name')) {
       const name = cells[0].trim();
       if (name && name.length > 1) {
         indices.push({
           name,
-          current: toNum(cells[1]),
-          change: toNum(cells[2]),
-          change_pct: toNum(cells[3]),
-          high: toNum(cells[4]),
-          low: toNum(cells[5]),
+          high: toNum(cells[1]),
+          low: toNum(cells[2]),
+          current: toNum(cells[3]),
+          change: toNum(cells[4]),
+          change_pct: toNum(cells[5]),
           volume: 0,
           updated_at: new Date().toISOString(),
         });

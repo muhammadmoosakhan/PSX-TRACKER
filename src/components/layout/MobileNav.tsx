@@ -4,9 +4,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
+  ArrowLeftRight,
   Briefcase,
+  BarChart3,
   Activity,
   LineChart,
+  Shield,
 } from 'lucide-react';
 import Avatar from '@/components/ui/Avatar';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,9 +17,12 @@ import { useAvatar } from '@/hooks/useAvatar';
 
 const tabs = [
   { label: 'Home', href: '/', icon: LayoutDashboard },
+  { label: 'Trades', href: '/trades', icon: ArrowLeftRight },
   { label: 'Market', href: '/market', icon: Activity },
   { label: 'Stocks', href: '/stocks', icon: LineChart },
   { label: 'Portfolio', href: '/portfolio', icon: Briefcase },
+  { label: 'Analysis', href: '/analysis', icon: BarChart3 },
+  { label: 'Risk', href: '/risk', icon: Shield },
 ];
 
 export default function MobileNav() {
@@ -32,14 +38,18 @@ export default function MobileNav() {
     <nav
       className="
         fixed bottom-0 left-0 right-0 z-50
-        flex items-center justify-around
+        flex items-center
         h-16 border-t lg:hidden
         backdrop-blur-lg
+        overflow-x-auto
+        [&::-webkit-scrollbar]:hidden
       "
       style={{
         background: 'color-mix(in srgb, var(--bg-card) 85%, transparent)',
         borderColor: 'var(--border-light)',
-      }}
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+      } as React.CSSProperties}
     >
       {tabs.map((tab) => {
         const isActive = pathname === tab.href;
@@ -48,7 +58,7 @@ export default function MobileNav() {
           <Link
             key={tab.href}
             href={tab.href}
-            className="flex flex-col items-center gap-0.5 py-2 px-3 relative transition-all duration-200"
+            className="flex flex-col items-center gap-0.5 py-2 px-2.5 relative transition-all duration-200 flex-shrink-0"
             style={{ color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)' }}
           >
             {isActive && (
@@ -66,7 +76,7 @@ export default function MobileNav() {
       {/* Profile / Settings tab — shows avatar */}
       <Link
         href="/settings"
-        className="flex flex-col items-center gap-0.5 py-2 px-3 relative transition-all duration-200"
+        className="flex flex-col items-center gap-0.5 py-2 px-2.5 relative transition-all duration-200 flex-shrink-0"
         style={{ color: isSettingsActive ? 'var(--accent-primary)' : 'var(--text-muted)' }}
       >
         {isSettingsActive && (
