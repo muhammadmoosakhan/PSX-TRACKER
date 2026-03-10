@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import Link from 'next/link';
 import { TrendingUp, TrendingDown, RefreshCw, Activity } from 'lucide-react';
 import PageHeader from '@/components/layout/PageHeader';
 import Card from '@/components/ui/Card';
@@ -199,91 +200,93 @@ function IndexCard({
   const changeColor = isPositive ? 'var(--accent-success)' : 'var(--accent-danger)';
 
   return (
-    <Card
-      className="animate-[slide-up_0.5s_ease-out_forwards] opacity-0"
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      {/* Header row */}
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <h3
-            className="text-sm font-semibold"
-            style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
+    <Link href={`/market/${encodeURIComponent(index.name)}`} className="block">
+      <Card
+        className="animate-[slide-up_0.5s_ease-out_forwards] opacity-0 cursor-pointer hover:scale-[1.02] transition-transform duration-200"
+        style={{ animationDelay: `${delay}ms` }}
+      >
+        {/* Header row */}
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <h3
+              className="text-sm font-semibold"
+              style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
+            >
+              {index.name}
+            </h3>
+          </div>
+          <div
+            className="flex items-center gap-1 px-2 py-1 rounded-[8px]"
+            style={{
+              background: isPositive
+                ? 'rgba(0, 184, 148, 0.1)'
+                : 'rgba(255, 82, 82, 0.1)',
+              color: changeColor,
+            }}
           >
-            {index.name}
-          </h3>
+            <Icon size={12} />
+            <span className="text-xs font-semibold">
+              {formatChangePct(index.change_pct)}
+            </span>
+          </div>
         </div>
-        <div
-          className="flex items-center gap-1 px-2 py-1 rounded-[8px]"
+
+        {/* Value */}
+        <p
+          className="text-xl font-bold mb-2"
           style={{
-            background: isPositive
-              ? 'rgba(0, 184, 148, 0.1)'
-              : 'rgba(255, 82, 82, 0.1)',
-            color: changeColor,
+            fontFamily: 'var(--font-mono)',
+            color: 'var(--text-primary)',
           }}
         >
-          <Icon size={12} />
-          <span className="text-xs font-semibold">
-            {formatChangePct(index.change_pct)}
-          </span>
-        </div>
-      </div>
+          {formatIndexValue(index.current)}
+        </p>
 
-      {/* Value */}
-      <p
-        className="text-xl font-bold mb-2"
-        style={{
-          fontFamily: 'var(--font-mono)',
-          color: 'var(--text-primary)',
-        }}
-      >
-        {formatIndexValue(index.current)}
-      </p>
+        {/* Change */}
+        <p className="text-sm mb-3" style={{ color: changeColor }}>
+          {formatChange(index.change)}
+        </p>
 
-      {/* Change */}
-      <p className="text-sm mb-3" style={{ color: changeColor }}>
-        {formatChange(index.change)}
-      </p>
-
-      {/* High / Low range */}
-      <div className="flex items-center gap-4 pt-3" style={{ borderTop: '1px solid var(--border-light)' }}>
-        <div>
-          <span className="text-xs block" style={{ color: 'var(--text-muted)' }}>
-            High
-          </span>
-          <span
-            className="text-xs font-semibold"
-            style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}
-          >
-            {formatIndexValue(index.high)}
-          </span>
-        </div>
-        <div>
-          <span className="text-xs block" style={{ color: 'var(--text-muted)' }}>
-            Low
-          </span>
-          <span
-            className="text-xs font-semibold"
-            style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}
-          >
-            {formatIndexValue(index.low)}
-          </span>
-        </div>
-        {index.volume > 0 && (
-          <div className="ml-auto">
-            <span className="text-xs block text-right" style={{ color: 'var(--text-muted)' }}>
-              Volume
+        {/* High / Low range */}
+        <div className="flex items-center gap-4 pt-3" style={{ borderTop: '1px solid var(--border-light)' }}>
+          <div>
+            <span className="text-xs block" style={{ color: 'var(--text-muted)' }}>
+              High
             </span>
             <span
               className="text-xs font-semibold"
               style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}
             >
-              {formatVolume(index.volume)}
+              {formatIndexValue(index.high)}
             </span>
           </div>
-        )}
-      </div>
-    </Card>
+          <div>
+            <span className="text-xs block" style={{ color: 'var(--text-muted)' }}>
+              Low
+            </span>
+            <span
+              className="text-xs font-semibold"
+              style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}
+            >
+              {formatIndexValue(index.low)}
+            </span>
+          </div>
+          {index.volume > 0 && (
+            <div className="ml-auto">
+              <span className="text-xs block text-right" style={{ color: 'var(--text-muted)' }}>
+                Volume
+              </span>
+              <span
+                className="text-xs font-semibold"
+                style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}
+              >
+                {formatVolume(index.volume)}
+              </span>
+            </div>
+          )}
+        </div>
+      </Card>
+    </Link>
   );
 }
 
@@ -337,6 +340,29 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 }
 
 // ---------------------------------------------------------------------------
+// Market Status Helper
+// ---------------------------------------------------------------------------
+
+function getMarketStatus(): { isOpen: boolean; label: string } {
+  const now = new Date();
+  // Convert to PKT (UTC+5)
+  const pkt = new Date(now.getTime() + (5 * 60 + now.getTimezoneOffset()) * 60000);
+  const day = pkt.getDay(); // 0=Sun, 6=Sat
+  const hours = pkt.getHours();
+  const minutes = pkt.getMinutes();
+  const timeInMinutes = hours * 60 + minutes;
+
+  // PSX: Mon-Fri, 9:30 AM to 3:30 PM PKT
+  const isWeekday = day >= 1 && day <= 5;
+  const isWithinHours = timeInMinutes >= 570 && timeInMinutes < 930; // 9:30=570, 15:30=930
+
+  if (isWeekday && isWithinHours) {
+    return { isOpen: true, label: 'Market Open' };
+  }
+  return { isOpen: false, label: 'Market Closed' };
+}
+
+// ---------------------------------------------------------------------------
 // Market Page
 // ---------------------------------------------------------------------------
 
@@ -350,6 +376,8 @@ export default function MarketPage() {
   // KSE100 intraday chart data
   const [chartData, setChartData] = useState<ChartPoint[]>([]);
   const [chartLoading, setChartLoading] = useState(true);
+
+  const marketStatus = getMarketStatus();
 
   // -----------------------------------------------------------------------
   // Fetch indices
@@ -436,6 +464,24 @@ export default function MarketPage() {
         subtitle="PSX Market Indices"
         action={
           <div className="flex items-center gap-3">
+            {/* Market Status Badge */}
+            <div
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+              style={{
+                background: marketStatus.isOpen
+                  ? 'rgba(0, 184, 148, 0.12)'
+                  : 'rgba(255, 82, 82, 0.12)',
+                color: marketStatus.isOpen ? 'var(--accent-success)' : 'var(--accent-danger)',
+              }}
+            >
+              <div
+                className={`w-2 h-2 rounded-full ${marketStatus.isOpen ? 'animate-pulse' : ''}`}
+                style={{
+                  background: marketStatus.isOpen ? 'var(--accent-success)' : 'var(--accent-danger)',
+                }}
+              />
+              <span className="text-xs font-semibold">{marketStatus.label}</span>
+            </div>
             {timeSince && (
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 {timeSince}
@@ -460,9 +506,10 @@ export default function MarketPage() {
       {/* Hero — KSE 100 Index                                              */}
       {/* ================================================================= */}
       {kse100 && (
+        <Link href={`/market/${encodeURIComponent(kse100.name)}`} className="block mb-6">
         <Card
           hoverable={false}
-          className="mb-6 animate-[slide-up_0.5s_ease-out_forwards] opacity-0"
+          className="animate-[slide-up_0.5s_ease-out_forwards] opacity-0 cursor-pointer hover:scale-[1.01] transition-transform duration-200"
           style={{ animationDelay: '0ms' }}
         >
           <div className="flex flex-col lg:flex-row lg:items-start lg:gap-8">
@@ -589,6 +636,7 @@ export default function MarketPage() {
             </div>
           </div>
         </Card>
+        </Link>
       )}
 
       {/* ================================================================= */}
