@@ -45,7 +45,8 @@ export default function MobileNav() {
         WebkitOverflowScrolling: 'touch',
       } as React.CSSProperties}
     >
-      <div className="flex items-center h-full w-max min-w-full px-1">
+      {/* 8 tabs total, 5 visible at a time — each tab = 20vw (100/5) */}
+      <div className="flex items-center h-full" style={{ width: 'max-content' }}>
         {tabs.map((tab) => {
           const isActive = pathname === tab.href;
           const Icon = tab.icon;
@@ -53,22 +54,22 @@ export default function MobileNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className="flex flex-col items-center justify-center gap-0.5 relative transition-all duration-200"
+              className="flex flex-col items-center justify-center gap-1 relative transition-all duration-200"
               style={{
                 color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)',
-                minWidth: '56px',
-                width: '56px',
+                width: '20vw',
+                minWidth: '20vw',
                 height: '100%',
               }}
             >
               {isActive && (
                 <div
-                  className="absolute top-0 w-5 h-0.5 rounded-full"
+                  className="absolute top-0 w-6 h-0.5 rounded-full"
                   style={{ background: 'var(--accent-primary)' }}
                 />
               )}
-              <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
-              <span className="text-[10px] font-medium whitespace-nowrap">{tab.label}</span>
+              <Icon size={24} strokeWidth={isActive ? 2.5 : 1.8} className="shrink-0" />
+              <span className="text-[11px] font-medium whitespace-nowrap">{tab.label}</span>
             </Link>
           );
         })}
@@ -76,17 +77,17 @@ export default function MobileNav() {
         {/* Profile / Settings tab */}
         <Link
           href="/settings"
-          className="flex flex-col items-center justify-center gap-0.5 relative transition-all duration-200"
+          className="flex flex-col items-center justify-center gap-1 relative transition-all duration-200"
           style={{
             color: isSettingsActive ? 'var(--accent-primary)' : 'var(--text-muted)',
-            minWidth: '56px',
-            width: '56px',
+            width: '20vw',
+            minWidth: '20vw',
             height: '100%',
           }}
         >
           {isSettingsActive && (
             <div
-              className="absolute top-0 w-5 h-0.5 rounded-full"
+              className="absolute top-0 w-6 h-0.5 rounded-full"
               style={{ background: 'var(--accent-primary)' }}
             />
           )}
@@ -96,7 +97,7 @@ export default function MobileNav() {
             size="xs"
             className={isSettingsActive ? 'ring-2 ring-[var(--accent-primary)]' : ''}
           />
-          <span className="text-[10px] font-medium whitespace-nowrap">Profile</span>
+          <span className="text-[11px] font-medium whitespace-nowrap">Profile</span>
         </Link>
       </div>
     </nav>
