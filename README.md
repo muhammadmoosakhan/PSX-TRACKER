@@ -33,6 +33,22 @@ A personal investment tracking app for the **Pakistan Stock Exchange (PSX)**. Tr
 - Trade volume, realized P&L, net investment trends
 - Interactive charts (line, bar)
 
+### Market Indices
+- Live PSX indices — KSE100, KSE30, KMI30 + 15 more
+- KSE100 hero card with intraday area chart (Recharts)
+- Green/red color coding for positive/negative changes
+- High, low, change %, absolute change per index
+- Real-time refresh from PSX Data Portal
+
+### Stocks Browser
+- 500+ PSX listed securities with live prices
+- Colored logo circles per stock (deterministic hashing)
+- Search by symbol or company name
+- Filter by sector, sort by change%, volume, price
+- Stats bar: total, gainers (green), losers (red), unchanged
+- "Load More" pagination for performance
+- Mobile-optimized card layout
+
 ### Risk & Sectors
 - Risk meter gauges (stock concentration, sector concentration, leverage)
 - Automated alerts for concentration thresholds
@@ -69,6 +85,7 @@ A personal investment tracking app for the **Pakistan Stock Exchange (PSX)**. Tr
 | PDF Export | jsPDF + jspdf-autotable |
 | Icons | Lucide React |
 | Fonts | Plus Jakarta Sans, DM Sans, JetBrains Mono |
+| PSX Data | dps.psx.com.pk (free, no API key) |
 | Hosting | Vercel |
 
 ---
@@ -215,6 +232,8 @@ src/
 │   ├── trades/page.tsx             # Trade log
 │   ├── portfolio/page.tsx          # Holdings
 │   ├── analysis/page.tsx           # Performance analysis
+│   ├── market/page.tsx              # PSX indices (KSE100, KSE30, etc.)
+│   ├── stocks/page.tsx             # All PSX stocks browser
 │   ├── risk/page.tsx               # Risk & sectors
 │   ├── settings/page.tsx           # Configuration & 2FA
 │   ├── login/page.tsx              # Sign in
@@ -223,6 +242,8 @@ src/
 │   ├── forgot-password/page.tsx    # Password reset
 │   ├── auth/callback/route.ts      # Auth redirect handler
 │   ├── api/psx/market/route.ts     # PSX market data API
+│   ├── api/psx/indices/route.ts    # PSX indices API
+│   ├── api/psx/indices/[index]/route.ts  # Index intraday data
 │   └── api/psx/history/[symbol]/route.ts
 ├── components/
 │   ├── ui/          # Button, Card, Modal, Toast, etc.
@@ -233,7 +254,7 @@ src/
 │   ├── portfolio/   # HoldingsTable
 │   ├── analysis/    # MonthlyView, QuarterlyView, YearlyView
 │   ├── risk/        # RiskMeter, ConcentrationAlert, SectorBreakdown
-│   └── settings/    # TwoFactorSetup
+│   └── settings/    # TwoFactorSetup, ProfileSection
 ├── hooks/           # useAuth, useTrades, usePortfolio, etc.
 ├── lib/             # supabase, calculations, formatters, psx
 ├── types/           # TypeScript interfaces

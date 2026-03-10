@@ -175,6 +175,23 @@ export interface WatchlistItem {
   notes: string;
 }
 
+export interface PSXIndex {
+  name: string;
+  current: number;
+  change: number;
+  change_pct: number;
+  high: number;
+  low: number;
+  volume: number;
+  updated_at: string;
+}
+
+export interface IndexTickPoint {
+  timestamp: number;
+  value: number;
+  volume: number;
+}
+
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 export interface AppSettings extends SettingsMap {

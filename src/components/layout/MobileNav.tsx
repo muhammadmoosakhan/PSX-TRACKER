@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
-  ArrowLeftRight,
   Briefcase,
-  BarChart3,
+  Activity,
+  LineChart,
 } from 'lucide-react';
 import Avatar from '@/components/ui/Avatar';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,10 +14,9 @@ import { useAvatar } from '@/hooks/useAvatar';
 
 const tabs = [
   { label: 'Home', href: '/', icon: LayoutDashboard },
-  { label: 'Trades', href: '/trades', icon: ArrowLeftRight },
+  { label: 'Market', href: '/market', icon: Activity },
+  { label: 'Stocks', href: '/stocks', icon: LineChart },
   { label: 'Portfolio', href: '/portfolio', icon: Briefcase },
-  { label: 'Analysis', href: '/analysis', icon: BarChart3 },
-  // Settings tab replaced by avatar below
 ];
 
 export default function MobileNav() {

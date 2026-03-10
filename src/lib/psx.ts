@@ -3,10 +3,12 @@
 // Fetches data from dps.psx.com.pk server-side
 // ============================================
 
-import type { StockCache, StockHistoryPoint } from '@/types';
+import type { StockCache, StockHistoryPoint, PSXIndex, IndexTickPoint } from '@/types';
 
 const PSX_MARKET_URL = 'https://dps.psx.com.pk/market-watch';
 const PSX_HISTORY_URL = 'https://dps.psx.com.pk/timeseries/eod';
+const PSX_INDICES_URL = 'https://dps.psx.com.pk/indices';
+const PSX_INDEX_TIMESERIES_URL = 'https://dps.psx.com.pk/timeseries/int';
 
 /**
  * Fetch and parse market watch data from PSX
@@ -134,6 +136,88 @@ export async function fetchPSXHistory(symbol: string): Promise<StockHistoryPoint
   } catch {
     return [];
   }
+}
+
+/**
+ * Fetch all PSX indices from the indices page
+ */
+export async function fetchPSXIndices(): Promise<PSXIndex[]> {
+  const res = await fetch(PSX_INDICES_URL, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (compatible; PSXTracker/1.0)',
+      'Accept': 'text/html',
+    },
+    next: { revalidate: 300 },
+  });
+
+  if (!res.ok) {
+    throw new Error(`PSX indices returned ${res.status}`);
+  }
+
+  const html = await res.text();
+  return parseHTMLIndices(html);
+}
+
+/**
+ * Parse HTML from PSX indices page
+ */
+function parseHTMLIndices(html: string): PSXIndex[] {
+  const indices: PSXIndex[] = [];
+  const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  const cellRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+
+  let rowMatch;
+  while ((rowMatch = rowRegex.exec(html)) !== null) {
+    const cells: string[] = [];
+    let cellMatch;
+    const rowContent = rowMatch[1];
+    while ((cellMatch = cellRegex.exec(rowContent)) !== null) {
+      cells.push(stripHTML(cellMatch[1]).trim());
+    }
+
+    // Indices table: Name, Current, Change, Change%, High, Low
+    if (cells.length >= 4 && cells[0] && !cells[0].includes('INDEX') && !cells[0].includes('Name')) {
+      const name = cells[0].trim();
+      if (name && name.length > 1) {
+        indices.push({
+          name,
+          current: toNum(cells[1]),
+          change: toNum(cells[2]),
+          change_pct: toNum(cells[3]),
+          high: toNum(cells[4]),
+          low: toNum(cells[5]),
+          volume: 0,
+          updated_at: new Date().toISOString(),
+        });
+      }
+    }
+  }
+
+  return indices;
+}
+
+/**
+ * Fetch intraday timeseries for an index
+ */
+export async function fetchPSXIndexTimeseries(indexName: string): Promise<IndexTickPoint[]> {
+  const res = await fetch(`${PSX_INDEX_TIMESERIES_URL}/${encodeURIComponent(indexName)}`, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (compatible; PSXTracker/1.0)',
+      'Accept': 'application/json',
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`PSX index timeseries returned ${res.status}`);
+  }
+
+  const json = await res.json();
+  const data = json.data || [];
+  return data.map((point: [number, number, number]) => ({
+    timestamp: point[0],
+    value: point[1],
+    volume: point[2],
+  }));
 }
 
 function toNum(val: unknown): number {

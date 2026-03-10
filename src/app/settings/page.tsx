@@ -248,11 +248,11 @@ function SettingsGroup({
             field.multiplier === 100 ? 2 : 0
           );
           return (
-            <div key={field.key} className="flex items-center justify-between gap-3">
-              <label className="text-sm flex-1" style={{ color: 'var(--text-secondary)' }}>
+            <div key={field.key} className="flex items-center justify-between gap-2 sm:gap-3">
+              <label className="text-sm flex-1 min-w-0 truncate" style={{ color: 'var(--text-secondary)' }}>
                 {field.label}
               </label>
-              <div className="relative w-28">
+              <div className="flex items-center gap-1.5 flex-shrink-0">
                 <input
                   type="number"
                   step={field.multiplier === 100 ? '0.01' : '1'}
@@ -263,15 +263,16 @@ function SettingsGroup({
                       onUpdate(field.key, (e.target as HTMLInputElement).value, field.multiplier);
                     }
                   }}
-                  className="w-full px-3 py-1.5 text-sm text-right rounded-[10px] outline-none transition-all focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-opacity-30"
+                  className="w-20 sm:w-24 px-2.5 py-1.5 text-sm text-right rounded-[10px] outline-none transition-all focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-opacity-30"
                   style={{
                     background: 'var(--input-bg)',
                     color: 'var(--text-primary)',
                     border: '1px solid var(--border-light)',
+                    fontFamily: 'var(--font-mono)',
                   }}
                 />
                 <span
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none"
+                  className="text-xs w-8 text-right flex-shrink-0"
                   style={{ color: 'var(--text-muted)' }}
                 >
                   {field.unit}

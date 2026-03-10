@@ -14,6 +14,8 @@ import {
   ChevronRight,
   TrendingUp,
   LogOut,
+  Activity,
+  LineChart,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import Avatar from '@/components/ui/Avatar';
@@ -25,6 +27,8 @@ const navItems = [
   { label: 'Trades', href: '/trades', icon: ArrowLeftRight },
   { label: 'Portfolio', href: '/portfolio', icon: Briefcase },
   { label: 'Analysis', href: '/analysis', icon: BarChart3 },
+  { label: 'Market', href: '/market', icon: Activity },
+  { label: 'Stocks', href: '/stocks', icon: LineChart },
   { label: 'Risk', href: '/risk', icon: Shield },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
