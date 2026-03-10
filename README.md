@@ -36,13 +36,17 @@ A personal investment tracking app for the **Pakistan Stock Exchange (PSX)**. Tr
 ### Market Indices
 - Live PSX indices — KSE100, KSE30, KMI30 + 15 more
 - KSE100 hero card with intraday area chart (Recharts)
+- **Clickable index cards** — tap any index to see detailed view
+- **Index detail page** with full intraday chart, stats grid, day's range bar
+- **Market status indicator** — live open/closed badge (Mon-Fri, 9:30-15:30 PKT)
 - Green/red color coding for positive/negative changes
 - High, low, change %, absolute change per index
 - Real-time refresh from PSX Data Portal
 
 ### Stocks Browser
 - 500+ PSX listed securities with live prices
-- Colored logo circles per stock (deterministic hashing)
+- Real company logos via Google Favicon API (60+ mapped stocks)
+- Colored fallback circles for unmapped stocks
 - Search by symbol or company name
 - Filter by sector, sort by change%, volume, price
 - Stats bar: total, gainers (green), losers (red), unchanged
@@ -233,6 +237,7 @@ src/
 │   ├── portfolio/page.tsx          # Holdings
 │   ├── analysis/page.tsx           # Performance analysis
 │   ├── market/page.tsx              # PSX indices (KSE100, KSE30, etc.)
+│   ├── market/[index]/page.tsx     # Index detail view with chart
 │   ├── stocks/page.tsx             # All PSX stocks browser
 │   ├── risk/page.tsx               # Risk & sectors
 │   ├── settings/page.tsx           # Configuration & 2FA
@@ -256,7 +261,7 @@ src/
 │   ├── risk/        # RiskMeter, ConcentrationAlert, SectorBreakdown
 │   └── settings/    # TwoFactorSetup, ProfileSection
 ├── hooks/           # useAuth, useTrades, usePortfolio, etc.
-├── lib/             # supabase, calculations, formatters, psx
+├── lib/             # supabase, calculations, formatters, psx, stock-logos
 ├── types/           # TypeScript interfaces
 └── middleware.ts     # Route protection
 ```
