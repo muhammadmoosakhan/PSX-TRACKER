@@ -16,7 +16,9 @@ import {
   LogOut,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import Avatar from '@/components/ui/Avatar';
 import { useAuth } from '@/hooks/useAuth';
+import { useAvatar } from '@/hooks/useAvatar';
 
 const navItems = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -31,6 +33,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const { user, signOut } = useAuth();
+  const { avatarUrl } = useAvatar();
 
   const userEmail = user?.email || '';
   const userInitial = userEmail.charAt(0).toUpperCase() || 'U';
@@ -118,12 +121,7 @@ export default function Sidebar() {
           <div
             className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2.5 px-2'} py-2`}
           >
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white"
-              style={{ background: 'var(--accent-primary)' }}
-            >
-              {userInitial}
-            </div>
+            <Avatar src={avatarUrl} initial={userInitial} size="sm" />
             {!collapsed && (
               <div className="flex-1 min-w-0">
                 <p

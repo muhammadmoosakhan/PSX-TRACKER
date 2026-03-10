@@ -14,6 +14,7 @@ import { usePortfolio } from '@/hooks/usePortfolio';
 import { exportTradesCSV, generatePortfolioReport } from '@/lib/pdf-export';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import TwoFactorSetup from '@/components/settings/TwoFactorSetup';
+import ProfileSection from '@/components/settings/ProfileSection';
 
 interface SettingField {
   key: string;
@@ -98,6 +99,9 @@ export default function SettingsPage() {
       <PageHeader title="Settings" subtitle="Configure your trading costs, tax rates, and preferences" />
 
       <div className="grid gap-6 md:grid-cols-2">
+        {/* Profile */}
+        <ProfileSection />
+
         {/* Trading Costs */}
         <SettingsGroup
           title="Trading Costs"
