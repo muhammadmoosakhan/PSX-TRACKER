@@ -14,7 +14,7 @@ export function useMarketData() {
     try {
       setLoading(true);
 
-      // Check cache age first
+      // Check cache age first (skip if force refresh)
       if (!forceRefresh) {
         const { data: cached } = await supabase
           .from('stocks_cache')
@@ -25,9 +25,9 @@ export function useMarketData() {
           setStocks(cached);
           setLastUpdated(cached[0]?.updated_at || null);
 
-          // If cache is less than 1 hour old, use it
+          // If cache is less than 2 minutes old, use it
           const cacheAge = Date.now() - new Date(cached[0].updated_at).getTime();
-          if (cacheAge < 3600000) {
+          if (cacheAge < 120000) {
             setLoading(false);
             return cached;
           }
@@ -56,6 +56,23 @@ export function useMarketData() {
 
   useEffect(() => {
     fetchMarketData();
+
+    // Auto-refresh every 30s during PSX market hours (Mon-Fri, 9:30-15:30 PKT)
+    const interval = setInterval(() => {
+      const now = new Date();
+      // Convert to PKT (UTC+5)
+      const pkt = new Date(now.getTime() + (5 * 60 - now.getTimezoneOffset()) * 60000);
+      const day = pkt.getDay(); // 0=Sun, 6=Sat
+      const hours = pkt.getHours();
+      const mins = pkt.getMinutes();
+      const timeInMins = hours * 60 + mins;
+      const isMarketOpen = day >= 1 && day <= 5 && timeInMins >= 570 && timeInMins <= 930; // 9:30-15:30
+      if (isMarketOpen) {
+        fetchMarketData(true);
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
