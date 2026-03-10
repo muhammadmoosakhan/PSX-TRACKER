@@ -1,0 +1,125 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/lib/supabase';
+import type { Trade, TradeInput } from '@/types';
+
+interface TradeFilters {
+  symbol?: string;
+  sector?: string;
+  trade_type?: 'BUY' | 'SELL';
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export function useTrades() {
+  const [trades, setTrades] = useState<Trade[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchTrades = useCallback(async (filters?: TradeFilters) => {
+    try {
+      setLoading(true);
+      let query = supabase
+        .from('trades')
+        .select('*')
+        .order('trade_date', { ascending: false });
+
+      if (filters?.symbol) {
+        query = query.ilike('symbol', `%${filters.symbol}%`);
+      }
+      if (filters?.sector) {
+        query = query.eq('sector', filters.sector);
+      }
+      if (filters?.trade_type) {
+        query = query.eq('trade_type', filters.trade_type);
+      }
+      if (filters?.dateFrom) {
+        query = query.gte('trade_date', filters.dateFrom);
+      }
+      if (filters?.dateTo) {
+        query = query.lte('trade_date', filters.dateTo);
+      }
+
+      const { data, error: err } = await query;
+
+      if (err) throw err;
+      setTrades(data || []);
+      setError(null);
+    } catch (e) {
+      console.error('Error fetching trades:', e);
+      setError('Unable to load trades. Check your connection.');
+      setTrades([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTrades();
+  }, [fetchTrades]);
+
+  const addTrade = useCallback(async (trade: TradeInput): Promise<boolean> => {
+    try {
+      const grossValue = trade.quantity * trade.rate_per_share;
+      const { error: err } = await supabase.from('trades').insert({
+        ...trade,
+        gross_value: grossValue,
+      });
+
+      if (err) throw err;
+      await fetchTrades();
+      return true;
+    } catch (e) {
+      console.error('Error adding trade:', e);
+      return false;
+    }
+  }, [fetchTrades]);
+
+  const updateTrade = useCallback(async (id: string, trade: Partial<TradeInput>): Promise<boolean> => {
+    try {
+      const updates: Record<string, unknown> = { ...trade };
+      if (trade.quantity && trade.rate_per_share) {
+        updates.gross_value = trade.quantity * trade.rate_per_share;
+      }
+
+      const { error: err } = await supabase
+        .from('trades')
+        .update(updates)
+        .eq('id', id);
+
+      if (err) throw err;
+      await fetchTrades();
+      return true;
+    } catch (e) {
+      console.error('Error updating trade:', e);
+      return false;
+    }
+  }, [fetchTrades]);
+
+  const deleteTrade = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      const { error: err } = await supabase
+        .from('trades')
+        .delete()
+        .eq('id', id);
+
+      if (err) throw err;
+      await fetchTrades();
+      return true;
+    } catch (e) {
+      console.error('Error deleting trade:', e);
+      return false;
+    }
+  }, [fetchTrades]);
+
+  return {
+    trades,
+    loading,
+    error,
+    fetchTrades,
+    addTrade,
+    updateTrade,
+    deleteTrade,
+  };
+}

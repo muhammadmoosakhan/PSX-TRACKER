@@ -1,0 +1,255 @@
+@import "tailwindcss";
+
+/* ============================================
+   PSX Portfolio Tracker — Global Styles
+   Design System: "Soft Glow"
+   ============================================ */
+
+/* --- Custom Theme (Tailwind v4) --- */
+@theme inline {
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
+  --font-heading: "Plus Jakarta Sans", sans-serif;
+  --font-body: "DM Sans", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Accent Colors */
+  --color-accent: #6C5CE7;
+  --color-accent-light: #A29BFE;
+  --color-accent-dark: #5A4BD1;
+  --color-teal: #00D2D3;
+  --color-coral: #FF6B6B;
+  --color-yellow: #FECA57;
+  --color-green: #00B894;
+  --color-danger: #FF5252;
+  --color-orange: #E17055;
+  --color-sky: #74B9FF;
+  --color-lavender: #A29BFE;
+  --color-pink: #FD79A8;
+  --color-mint: #55EFC4;
+
+  /* Border radius */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
+
+  /* Animations */
+  --animate-fade-in: fade-in 0.5s ease-out forwards;
+  --animate-slide-up: slide-up 0.5s ease-out forwards;
+  --animate-shimmer: shimmer 1.5s infinite;
+  --animate-pulse-soft: pulse-soft 2s ease-in-out infinite;
+  --animate-scale-in: scale-in 0.3s ease-out forwards;
+  --animate-slide-in-right: slide-in-right 0.3s ease-out forwards;
+  --animate-bounce-in: bounce-in 0.5s ease-out forwards;
+  --animate-count-up: count-up 0.8s ease-out forwards;
+}
+
+/* --- Light Mode (default) --- */
+:root {
+  --bg-primary: #FAFBFE;
+  --bg-secondary: #F0F4FF;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F8FAFF;
+  --text-primary: #1A1D2E;
+  --text-secondary: #6B7194;
+  --text-muted: #9CA3C4;
+  --accent-primary: #6C5CE7;
+  --accent-secondary: #00D2D3;
+  --accent-tertiary: #FF6B6B;
+  --accent-warning: #FECA57;
+  --accent-success: #00B894;
+  --accent-danger: #FF5252;
+  --border-light: #E8ECF4;
+  --shadow-sm: 0 2px 8px rgba(108, 92, 231, 0.08);
+  --shadow-md: 0 4px 20px rgba(108, 92, 231, 0.12);
+  --shadow-lg: 0 8px 40px rgba(108, 92, 231, 0.16);
+  --sidebar-bg: #FFFFFF;
+  --sidebar-border: #E8ECF4;
+  --input-bg: #F0F4FF;
+  --skeleton-base: #E8ECF4;
+  --skeleton-shine: #F8FAFF;
+}
+
+/* --- Dark Mode --- */
+[data-theme="dark"] {
+  --bg-primary: #0F0F1A;
+  --bg-secondary: #1A1A2E;
+  --bg-card: #16162A;
+  --bg-card-hover: #1E1E36;
+  --text-primary: #E8E8F0;
+  --text-secondary: #8888A8;
+  --text-muted: #5A5A78;
+  --border-light: #2A2A44;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+  --sidebar-bg: #16162A;
+  --sidebar-border: #2A2A44;
+  --input-bg: #1A1A2E;
+  --skeleton-base: #2A2A44;
+  --skeleton-shine: #3A3A5E;
+}
+
+/* --- Keyframes --- */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes bounce-in {
+  0% { opacity: 0; transform: scale(0.3); }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* --- Base Styles --- */
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: "DM Sans", sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 700;
+}
+
+/* --- Staggered Animation Utility --- */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+
+/* --- Card Base --- */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* --- Skeleton Shimmer --- */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 25%,
+    var(--skeleton-shine) 50%,
+    var(--skeleton-base) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+/* --- Scrollbar Styling --- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* --- Focus Ring --- */
+*:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* --- Number Font --- */
+.font-mono-numbers {
+  font-family: "JetBrains Mono", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Gradient Accents --- */
+.gradient-primary {
+  background: linear-gradient(135deg, #6C5CE7, #A29BFE);
+}
+
+.gradient-success {
+  background: linear-gradient(135deg, #00B894, #55EFC4);
+}
+
+.gradient-danger {
+  background: linear-gradient(135deg, #FF5252, #FF6B6B);
+}
+
+/* --- Toast Container --- */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* --- Hide scrollbar on horizontal scroll --- */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
