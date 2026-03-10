@@ -15,6 +15,7 @@ import { exportTradesCSV, generatePortfolioReport } from '@/lib/pdf-export';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import TwoFactorSetup from '@/components/settings/TwoFactorSetup';
 import ProfileSection from '@/components/settings/ProfileSection';
+import NotificationSection from '@/components/settings/NotificationSection';
 
 interface SettingField {
   key: string;
@@ -170,6 +171,9 @@ export default function SettingsPage() {
 
         {/* Security — 2FA */}
         <TwoFactorSetup />
+
+        {/* Notifications */}
+        <NotificationSection />
 
         {/* Data Management */}
         <Card hoverable={false}>

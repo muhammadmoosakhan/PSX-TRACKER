@@ -2,7 +2,7 @@
 
 A personal investment tracking app for the **Pakistan Stock Exchange (PSX)**. Track trades, monitor your portfolio in real-time, analyze performance, and manage risk — all in one place.
 
-**Live:** [psx-tracker-two.vercel.app](https://psx-tracker-two.vercel.app)
+**Live:** [psx-tracker.vercel.app](https://psx-tracker.vercel.app)
 
 ---
 
@@ -58,10 +58,20 @@ A personal investment tracking app for the **Pakistan Stock Exchange (PSX)**. Tr
 - Automated alerts for concentration thresholds
 - Sector allocation breakdown with donut chart
 
+### Email Notifications (SMTP)
+- **Market Open Alert** — emailed at 9:30 AM PKT (Mon-Fri) when PSX opens
+- **Market Close Summary** — emailed at 3:30 PM PKT with all index changes
+- **Daily Portfolio Report** — portfolio value, P&L, top 5 gainers/losers, index summary
+- Vercel Cron Jobs for automated scheduling
+- Configurable per-user: toggle on/off, choose notification types
+- Dark-themed HTML email templates with KPI cards and color-coded tables
+- Works with any SMTP provider (Gmail, Outlook, custom)
+
 ### Settings
 - Configurable brokerage rate, CVT, capital gains tax slabs
 - Capital & leverage tracking
 - Risk threshold configuration
+- **Email notification preferences** — enable/disable, choose alerts
 - Light/Dark/System theme toggle
 - Two-Factor Authentication (2FA) setup
 - Export: PDF report & CSV trades
@@ -115,6 +125,15 @@ Create `.env.local` in the project root:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# For email notifications (optional)
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+SMTP_FROM=PSX Tracker <your-email@gmail.com>
+CRON_SECRET=a-random-secret-string
 ```
 
 ### 3. Database Setup
@@ -203,6 +222,25 @@ CREATE POLICY "Users see own watchlist" ON watchlist FOR SELECT USING (auth.uid(
 CREATE POLICY "Users insert own watchlist" ON watchlist FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users delete own watchlist" ON watchlist FOR DELETE USING (auth.uid() = user_id);
 
+-- Notification preferences
+CREATE TABLE notification_preferences (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
+  enabled BOOLEAN DEFAULT false NOT NULL,
+  email TEXT,
+  market_open BOOLEAN DEFAULT true NOT NULL,
+  market_close BOOLEAN DEFAULT true NOT NULL,
+  daily_report BOOLEAN DEFAULT true NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users manage own prefs" ON notification_preferences
+  FOR ALL USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
 -- Indexes
 CREATE INDEX idx_trades_user ON trades(user_id);
 CREATE INDEX idx_trades_date ON trades(trade_date DESC);
@@ -249,7 +287,9 @@ src/
 │   ├── api/psx/market/route.ts     # PSX market data API
 │   ├── api/psx/indices/route.ts    # PSX indices API
 │   ├── api/psx/indices/[index]/route.ts  # Index intraday data
-│   └── api/psx/history/[symbol]/route.ts
+│   ├── api/psx/history/[symbol]/route.ts
+│   ├── api/notifications/market-open/route.ts   # Cron: market open email
+│   └── api/notifications/market-close/route.ts  # Cron: close + daily report
 ├── components/
 │   ├── ui/          # Button, Card, Modal, Toast, etc.
 │   ├── layout/      # Sidebar, MobileNav, AppShell
@@ -261,7 +301,7 @@ src/
 │   ├── risk/        # RiskMeter, ConcentrationAlert, SectorBreakdown
 │   └── settings/    # TwoFactorSetup, ProfileSection
 ├── hooks/           # useAuth, useTrades, usePortfolio, etc.
-├── lib/             # supabase, calculations, formatters, psx, stock-logos
+├── lib/             # supabase, calculations, formatters, psx, stock-logos, email
 ├── types/           # TypeScript interfaces
 └── middleware.ts     # Route protection
 ```
