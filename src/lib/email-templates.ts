@@ -287,3 +287,86 @@ export function dailyReportEmailHTML(data: DailyReportData): string {
 
   return wrapLayout(body);
 }
+
+// ---------------------------------------------------------------------------
+// 4. Welcome Email (after signup confirmation)
+// ---------------------------------------------------------------------------
+
+export function welcomeEmailHTML(email: string): string {
+  const body = `
+    <tr>
+      <td style="padding:40px 24px 16px;text-align:center;">
+        <div style="display:inline-block;width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#6C5CE7,#a29bfe);line-height:80px;font-size:36px;margin-bottom:16px;">&#x1F4C8;</div>
+        <h1 style="margin:0 0 8px;color:#fff;font-size:26px;font-weight:700;">Welcome to PSX Tracker!</h1>
+        <p style="margin:0;color:#ccc;font-size:15px;line-height:1.6;">
+          Your account <strong style="color:#fff;">${email}</strong> is verified and ready to go.
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:8px 24px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#16213e;border-radius:12px;overflow:hidden;">
+          <tr>
+            <td style="padding:24px;">
+              <h2 style="margin:0 0 16px;color:#fff;font-size:18px;font-weight:600;">Get Started</h2>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:10px 0;border-bottom:1px solid #2a2a4a;">
+                    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                      <td style="width:36px;text-align:center;font-size:18px;">&#x1F4CA;</td>
+                      <td style="padding-left:12px;">
+                        <div style="color:#fff;font-size:14px;font-weight:600;">Log Your Trades</div>
+                        <div style="color:#888;font-size:12px;margin-top:2px;">Record BUY/SELL trades with auto-calculated costs</div>
+                      </td>
+                    </tr></table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0;border-bottom:1px solid #2a2a4a;">
+                    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                      <td style="width:36px;text-align:center;font-size:18px;">&#x1F4BC;</td>
+                      <td style="padding-left:12px;">
+                        <div style="color:#fff;font-size:14px;font-weight:600;">Track Portfolio</div>
+                        <div style="color:#888;font-size:12px;margin-top:2px;">Live market prices, P&amp;L, and weight allocation</div>
+                      </td>
+                    </tr></table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0;border-bottom:1px solid #2a2a4a;">
+                    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                      <td style="width:36px;text-align:center;font-size:18px;">&#x1F4C8;</td>
+                      <td style="padding-left:12px;">
+                        <div style="color:#fff;font-size:14px;font-weight:600;">Market &amp; Indices</div>
+                        <div style="color:#888;font-size:12px;margin-top:2px;">KSE100, KSE30, KMI30 with intraday charts</div>
+                      </td>
+                    </tr></table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0;">
+                    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                      <td style="width:36px;text-align:center;font-size:18px;">&#x1F514;</td>
+                      <td style="padding-left:12px;">
+                        <div style="color:#fff;font-size:14px;font-weight:600;">Email Alerts</div>
+                        <div style="color:#888;font-size:12px;margin-top:2px;">Get market open/close notifications &amp; daily reports</div>
+                      </td>
+                    </tr></table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:20px 24px 32px;text-align:center;">
+        <a href="${APP_URL}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#6C5CE7,#a29bfe);color:#fff;font-size:15px;font-weight:600;text-decoration:none;border-radius:10px;">
+          Open PSX Tracker
+        </a>
+      </td>
+    </tr>`;
+
+  return wrapLayout(body);
+}

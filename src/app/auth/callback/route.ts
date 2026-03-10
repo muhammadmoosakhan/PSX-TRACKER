@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { sendEmail } from '@/lib/email';
+import { welcomeEmailHTML } from '@/lib/email-templates';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -32,6 +34,24 @@ export async function GET(request: Request) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      // Send welcome email for new signups (created within last 5 minutes)
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email && user.created_at) {
+          const createdAt = new Date(user.created_at).getTime();
+          const fiveMinAgo = Date.now() - 5 * 60 * 1000;
+          if (createdAt > fiveMinAgo) {
+            sendEmail(
+              user.email,
+              'Welcome to PSX Portfolio Tracker!',
+              welcomeEmailHTML(user.email)
+            ).catch(() => {}); // fire and forget
+          }
+        }
+      } catch {
+        // Welcome email is non-critical
+      }
+
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
