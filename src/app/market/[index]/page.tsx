@@ -288,28 +288,19 @@ function DayRangeBar({
         </span>
       </div>
 
-      {/* Range bar container */}
-      <div className="relative w-full h-2 rounded-full overflow-hidden mb-2"
-        style={{ background: 'var(--bg-secondary)' }}
+      {/* Range bar */}
+      <div className="relative w-full h-2 rounded-full mb-3"
+        style={{ background: 'linear-gradient(90deg, #EF4444, #F59E0B, #22C55E)' }}
       >
-        {/* Filled portion up to current */}
-        <div
-          className="absolute top-0 left-0 h-full rounded-full"
-          style={{
-            width: `${clampedPosition}%`,
-            background: 'linear-gradient(90deg, var(--accent-danger), var(--accent-primary), var(--accent-success))',
-            transition: 'width 0.6s ease-out',
-          }}
-        />
         {/* Current position marker */}
         <div
-          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2"
+          className="absolute top-1/2 w-3.5 h-3.5 rounded-full border-[2.5px]"
           style={{
             left: `${clampedPosition}%`,
-            transform: `translate(-50%, -50%)`,
+            transform: 'translate(-50%, -50%)',
             background: 'var(--bg-card)',
-            borderColor: 'var(--accent-primary)',
-            boxShadow: 'var(--shadow-md)',
+            borderColor: '#fff',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
             transition: 'left 0.6s ease-out',
           }}
         />

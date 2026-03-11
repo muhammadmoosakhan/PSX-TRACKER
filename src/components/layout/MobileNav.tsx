@@ -32,7 +32,7 @@ export default function MobileNav() {
 
   const userEmail = user?.email || '';
   const userInitial = userEmail.charAt(0).toUpperCase() || 'U';
-  const isSettingsActive = pathname === '/settings';
+  const isSettingsActive = pathname.startsWith('/settings');
 
   return (
     <nav
@@ -48,7 +48,7 @@ export default function MobileNav() {
       {/* 8 tabs total, 5 visible at a time — each tab = 20vw (100/5) */}
       <div className="flex items-center h-full" style={{ width: 'max-content' }}>
         {tabs.map((tab) => {
-          const isActive = pathname === tab.href;
+          const isActive = tab.href === '/' ? pathname === '/' : pathname.startsWith(tab.href);
           const Icon = tab.icon;
           return (
             <Link
