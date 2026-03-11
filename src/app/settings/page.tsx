@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { RefreshCw, Download, Sun, Moon, Monitor } from 'lucide-react';
+import { RefreshCw, Download, Sun, Moon, Monitor, LogOut } from 'lucide-react';
 import PageHeader from '@/components/layout/PageHeader';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -13,6 +13,7 @@ import { useMarketData } from '@/hooks/useMarketData';
 import { usePortfolio } from '@/hooks/usePortfolio';
 import { exportTradesCSV, generatePortfolioReport } from '@/lib/pdf-export';
 import { SkeletonCard } from '@/components/ui/Skeleton';
+import { useAuth } from '@/hooks/useAuth';
 import TwoFactorSetup from '@/components/settings/TwoFactorSetup';
 import ProfileSection from '@/components/settings/ProfileSection';
 import NotificationSection from '@/components/settings/NotificationSection';
@@ -51,6 +52,7 @@ const riskThresholds: SettingField[] = [
 ];
 
 export default function SettingsPage() {
+  const { signOut } = useAuth();
   const { settings, loading, updateSetting } = useSettings();
   const { trades } = useTrades();
   const { getPriceMap } = useMarketData();
@@ -221,6 +223,24 @@ export default function SettingsPage() {
               Export Portfolio Report (PDF)
             </Button>
           </div>
+        </Card>
+
+        {/* Sign Out */}
+        <Card hoverable={false}>
+          <button
+            onClick={async () => {
+              await signOut();
+              globalThis.location.href = '/login';
+            }}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-[12px] text-sm font-semibold transition-all duration-200 cursor-pointer"
+            style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              color: '#EF4444',
+            }}
+          >
+            <LogOut size={18} />
+            Sign Out
+          </button>
         </Card>
       </div>
     </div>
