@@ -113,6 +113,21 @@ export function useTrades() {
     }
   }, [fetchTrades]);
 
+  const deleteAllTrades = useCallback(async (): Promise<boolean> => {
+    try {
+      const { error: err } = await supabase
+        .from('trades')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (err) throw err;
+      setTrades([]);
+      return true;
+    } catch (e) {
+      console.error('Error deleting all trades:', e);
+      return false;
+    }
+  }, []);
+
   return {
     trades,
     loading,
@@ -121,5 +136,6 @@ export function useTrades() {
     addTrade,
     updateTrade,
     deleteTrade,
+    deleteAllTrades,
   };
 }

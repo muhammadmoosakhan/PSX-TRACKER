@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { RefreshCw, Download, Sun, Moon, Monitor, LogOut } from 'lucide-react';
+import { RefreshCw, Download, Sun, Moon, Monitor, LogOut, RotateCcw, Trash2, AlertTriangle } from 'lucide-react';
 import PageHeader from '@/components/layout/PageHeader';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import Modal from '@/components/ui/Modal';
 import { useSettings } from '@/hooks/useSettings';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/components/ui/Toast';
@@ -53,14 +54,16 @@ const riskThresholds: SettingField[] = [
 
 export default function SettingsPage() {
   const { signOut } = useAuth();
-  const { settings, loading, updateSetting } = useSettings();
-  const { trades } = useTrades();
+  const { settings, loading, updateSetting, resetSettings } = useSettings();
+  const { trades, deleteAllTrades } = useTrades();
   const { getPriceMap } = useMarketData();
   const priceMap = getPriceMap();
   const { holdings, sectorAllocation, summary } = usePortfolio(trades, priceMap);
   const { theme, setTheme } = useTheme();
   const { showToast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
+  const [resetModal, setResetModal] = useState<'settings' | 'trades' | 'all' | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   const handleUpdate = async (key: string, displayValue: string, multiplier: number) => {
     const num = Number.parseFloat(displayValue);
@@ -225,6 +228,46 @@ export default function SettingsPage() {
           </div>
         </Card>
 
+        {/* Reset Options */}
+        <Card hoverable={false}>
+          <h3
+            className="text-base font-semibold mb-4"
+            style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
+          >
+            Reset
+          </h3>
+          <div className="space-y-3">
+            <Button
+              variant="secondary"
+              size="md"
+              className="w-full"
+              onClick={() => setResetModal('settings')}
+            >
+              <RotateCcw size={16} />
+              Reset Settings to Defaults
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
+              className="w-full"
+              onClick={() => setResetModal('trades')}
+              disabled={trades.length === 0}
+            >
+              <Trash2 size={16} />
+              Delete All Trades
+            </Button>
+            <Button
+              variant="danger"
+              size="md"
+              className="w-full"
+              onClick={() => setResetModal('all')}
+            >
+              <AlertTriangle size={16} />
+              Reset Everything
+            </Button>
+          </div>
+        </Card>
+
         {/* Sign Out */}
         <Card hoverable={false}>
           <button
@@ -243,6 +286,66 @@ export default function SettingsPage() {
           </button>
         </Card>
       </div>
+
+      {/* Reset Confirmation Modal */}
+      <Modal
+        open={!!resetModal}
+        onClose={() => setResetModal(null)}
+        title={
+          resetModal === 'settings'
+            ? 'Reset Settings'
+            : resetModal === 'trades'
+              ? 'Delete All Trades'
+              : 'Reset Everything'
+        }
+      >
+        <div className="flex items-start gap-3 mb-4">
+          <AlertTriangle size={24} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--accent-danger)' }} />
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            {resetModal === 'settings' && 'This will reset all your settings (brokerage rate, tax rates, risk thresholds, capital) back to default values.'}
+            {resetModal === 'trades' && `This will permanently delete all ${trades.length} trade(s). Your portfolio, P&L, and analysis data will be lost. This cannot be undone.`}
+            {resetModal === 'all' && 'This will delete ALL your trades and reset ALL settings to defaults. Everything will be wiped clean. This cannot be undone.'}
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="ghost" className="flex-1" onClick={() => setResetModal(null)}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            className="flex-1"
+            loading={resetting}
+            onClick={async () => {
+              setResetting(true);
+              let success = true;
+              if (resetModal === 'settings' || resetModal === 'all') {
+                success = await resetSettings();
+              }
+              if ((resetModal === 'trades' || resetModal === 'all') && success) {
+                success = await deleteAllTrades();
+              }
+              setResetting(false);
+              setResetModal(null);
+              if (success) {
+                showToast('success',
+                  resetModal === 'settings'
+                    ? 'Settings reset to defaults'
+                    : resetModal === 'trades'
+                      ? 'All trades deleted'
+                      : 'Everything has been reset'
+                );
+                if (resetModal !== 'settings') {
+                  globalThis.location.reload();
+                }
+              } else {
+                showToast('error', 'Reset failed. Please try again.');
+              }
+            }}
+          >
+            {resetModal === 'settings' ? 'Reset Settings' : resetModal === 'trades' ? 'Delete All' : 'Reset Everything'}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

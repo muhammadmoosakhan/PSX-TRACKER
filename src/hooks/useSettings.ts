@@ -57,5 +57,21 @@ export function useSettings() {
     }
   }, []);
 
-  return { settings, loading, error, updateSetting, refreshSettings: fetchSettings };
+  const resetSettings = useCallback(async (): Promise<boolean> => {
+    try {
+      // Delete all user settings — will fall back to defaults
+      const { error: err } = await supabase
+        .from('settings')
+        .delete()
+        .neq('key', '__nonexistent__');
+      if (err) throw err;
+      setSettings(DEFAULT_SETTINGS as AppSettings);
+      return true;
+    } catch (e) {
+      console.error('Error resetting settings:', e);
+      return false;
+    }
+  }, []);
+
+  return { settings, loading, error, updateSetting, resetSettings, refreshSettings: fetchSettings };
 }
