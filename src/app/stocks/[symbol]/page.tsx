@@ -41,9 +41,9 @@ const TABS = [
   { key: 'live', label: 'Live', icon: Activity },
   { key: 'fundamentals', label: 'Fundamentals', icon: BarChart3 },
   { key: 'technicals', label: 'Technicals', icon: TrendingUp },
-  { key: 'announcements', label: 'Announcements', icon: FileText },
+  { key: 'announcements', label: 'News', icon: FileText },
   { key: 'profile', label: 'Profile', icon: Building2 },
-  { key: 'competitors', label: 'Competitors', icon: Users },
+  { key: 'competitors', label: 'Peers', icon: Users },
 ] as const;
 
 type TabKey = (typeof TABS)[number]['key'];
@@ -73,7 +73,6 @@ function formatLargeNumber(v: number): string {
   return v.toFixed(2);
 }
 
-/** Filter history data by selected chart period */
 function filterByPeriod(data: StockHistoryPoint[], period: ChartPeriod): StockHistoryPoint[] {
   if (data.length === 0) return [];
   const now = new Date();
@@ -81,7 +80,6 @@ function filterByPeriod(data: StockHistoryPoint[], period: ChartPeriod): StockHi
 
   switch (period) {
     case '1D':
-      // Show the last 2 trading days
       return data.slice(-2);
     case '1M':
       cutoff = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
@@ -108,172 +106,159 @@ function filterByPeriod(data: StockHistoryPoint[], period: ChartPeriod): StockHi
   return data.filter((d) => new Date(d.date) >= cutoff);
 }
 
-/** Compute the position percentage for range sliders */
 function rangePosition(value: number, min: number, max: number): number {
   if (max === min) return 50;
   return Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
 }
 
 // ============================================
-// Skeleton Components
+// Skeleton
 // ============================================
 
 function SkeletonBlock({ className }: { className?: string }) {
   return <div className={`skeleton ${className || ''}`} />;
 }
 
-function SkeletonCard() {
+// ============================================
+// Sub-Components
+// ============================================
+
+/** Section header with accent underline divider */
+function SectionHeader({ title }: { title: string }) {
   return (
-    <div
-      className="rounded-[16px] p-5"
-      style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)' }}
-    >
-      <SkeletonBlock className="h-4 w-24 mb-3" />
-      <SkeletonBlock className="h-6 w-32 mb-2" />
-      <SkeletonBlock className="h-4 w-full" />
+    <div className="mb-3 mt-1">
+      <h3
+        className="text-[13px] font-bold uppercase tracking-wide pb-2"
+        style={{
+          color: 'var(--text-primary)',
+          fontFamily: 'var(--font-heading)',
+          borderBottom: '2.5px solid var(--accent-primary)',
+          display: 'inline-block',
+        }}
+      >
+        {title}
+      </h3>
     </div>
   );
 }
 
-// ============================================
-// Sub-Components: Range Slider
-// ============================================
+/** Flat stat row — label on left, value on right */
+function StatRow({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
+  return (
+    <div
+      className="flex items-center justify-between py-2.5"
+      style={{ borderBottom: '1px dashed var(--border-light)' }}
+    >
+      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+        {label}
+      </span>
+      <span
+        className="text-xs font-bold"
+        style={{ color: valueColor || 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
 
+/** Dotted range slider with circle dot indicator */
 function RangeSlider({
   label,
   low,
   high,
   current,
-  lowLabel,
-  highLabel,
 }: {
   label: string;
   low: number;
   high: number;
   current: number;
-  lowLabel?: string;
-  highLabel?: string;
 }) {
   const pct = rangePosition(current, low, high);
 
   return (
-    <div className="mb-4">
-      <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>
+    <div className="mb-5">
+      <p className="text-xs font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>
         {label}
       </p>
-      <div className="relative h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
-        {/* Gradient bar */}
+      <div className="relative" style={{ height: 32 }}>
+        {/* Current value label above dot */}
         <div
-          className="absolute inset-0 rounded-full"
-          style={{
-            background: 'linear-gradient(to right, var(--accent-danger), var(--accent-warning), var(--accent-success))',
-          }}
-        />
-        {/* Position marker */}
-        <div
-          className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2"
+          className="absolute text-[10px] font-bold"
           style={{
             left: `${pct}%`,
-            transform: `translate(-50%, -50%)`,
-            background: 'var(--bg-card)',
-            borderColor: 'var(--accent-primary)',
-            boxShadow: 'var(--shadow-sm)',
+            transform: 'translateX(-50%)',
+            top: 0,
+            color: 'var(--accent-primary)',
+            fontFamily: 'var(--font-mono)',
+          }}
+        >
+          {formatPrice(current)}
+        </div>
+
+        {/* Dotted line */}
+        <div
+          className="absolute w-full"
+          style={{
+            top: 20,
+            height: 2,
+            backgroundImage: 'radial-gradient(circle, var(--text-muted) 1px, transparent 1px)',
+            backgroundSize: '8px 2px',
+            backgroundRepeat: 'repeat-x',
+            opacity: 0.5,
+          }}
+        />
+
+        {/* Dot indicator */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            left: `${pct}%`,
+            top: 16,
+            width: 10,
+            height: 10,
+            transform: 'translateX(-50%)',
+            background: 'var(--accent-primary)',
+            boxShadow: '0 0 0 3px rgba(108, 92, 231, 0.2)',
           }}
         />
       </div>
-      <div className="flex justify-between mt-1.5">
-        <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-          {lowLabel || formatPrice(low)}
+      <div className="flex justify-between mt-1">
+        <span className="text-[10px]" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+          {formatPrice(low)}
         </span>
-        <span className="text-[10px] font-bold" style={{ color: 'var(--accent-primary)', fontFamily: 'var(--font-mono)' }}>
-          {formatPrice(current)}
-        </span>
-        <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-          {highLabel || formatPrice(high)}
+        <span className="text-[10px]" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+          {formatPrice(high)}
         </span>
       </div>
     </div>
   );
 }
 
-// ============================================
-// Sub-Components: Signal Badge
-// ============================================
-
+/** Solid filled signal badge */
 function SignalBadge({ signal }: { signal: 'BUY' | 'SELL' | 'NEUTRAL' }) {
-  const colors = {
-    BUY: { bg: 'rgba(0,184,148,0.12)', text: 'var(--accent-success)' },
-    SELL: { bg: 'rgba(255,82,82,0.12)', text: 'var(--accent-danger)' },
-    NEUTRAL: { bg: 'var(--bg-secondary)', text: 'var(--text-muted)' },
+  const styles = {
+    BUY: { bg: '#00B894', color: '#fff' },
+    SELL: { bg: '#FF5252', color: '#fff' },
+    NEUTRAL: { bg: '#9CA3C4', color: '#fff' },
   };
-  const c = colors[signal];
+  const s = styles[signal];
 
   return (
     <span
-      className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-      style={{ background: c.bg, color: c.text }}
+      className="text-[10px] font-bold px-2.5 py-0.5 rounded-full"
+      style={{ background: s.bg, color: s.color }}
     >
       {signal}
     </span>
   );
 }
 
-// ============================================
-// Sub-Components: Stat Grid Item
-// ============================================
-
-function StatItem({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div
-      className="p-3 rounded-[12px]"
-      style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-light)' }}
-    >
-      <p className="text-[10px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
-        {label}
-      </p>
-      <p className="text-sm font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
-        {value}
-      </p>
-    </div>
-  );
-}
-
-// ============================================
-// Sub-Components: Fundamental Row
-// ============================================
-
-function FundamentalRow({ label, value, isPositive }: { label: string; value: string; isPositive?: boolean | null }) {
-  const valueColor =
-    isPositive === true
-      ? 'var(--accent-success)'
-      : isPositive === false
-        ? 'var(--accent-danger)'
-        : 'var(--text-primary)';
-
-  return (
-    <div
-      className="flex items-center justify-between py-2.5 px-1"
-      style={{ borderBottom: '1px solid var(--border-light)' }}
-    >
-      <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
-        {label}
-      </span>
-      <span className="text-xs font-bold" style={{ color: valueColor, fontFamily: 'var(--font-mono)' }}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
-// ============================================
-// Sub-Components: Stock Logo
-// ============================================
-
+/** Stock logo with fallback */
 function StockLogo({ symbol, size = 40 }: { symbol: string; size?: number }) {
   const logoUrl = getStockLogoUrl(symbol);
   const [imgError, setImgError] = useState(false);
 
-  // Deterministic color from symbol
   const colors = ['#6C5CE7', '#00B894', '#E17055', '#0984E3', '#FDCB6E', '#E84393', '#00CEC9', '#636E72'];
   let hash = 0;
   for (let i = 0; i < symbol.length; i++) hash = symbol.charCodeAt(i) + ((hash << 5) - hash);
@@ -307,10 +292,7 @@ function StockLogo({ symbol, size = 40 }: { symbol: string; size?: number }) {
   );
 }
 
-// ============================================
-// Chart Custom Tooltip
-// ============================================
-
+/** Chart tooltip */
 function ChartTooltipContent({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
@@ -323,8 +305,31 @@ function ChartTooltipContent({ active, payload, label }: any) {
       }}
     >
       <p className="font-medium mb-1" style={{ color: 'var(--text-muted)' }}>{label}</p>
-      <p className="font-bold" style={{ color: 'var(--accent-secondary)', fontFamily: 'var(--font-mono)' }}>
+      <p className="font-bold" style={{ color: 'var(--accent-primary)', fontFamily: 'var(--font-mono)' }}>
         PKR {formatPrice(payload[0].value)}
+      </p>
+    </div>
+  );
+}
+
+/** Empty state */
+function EmptyTabState({
+  icon: Icon,
+  title,
+  message,
+}: {
+  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties; className?: string }>;
+  title: string;
+  message: string;
+}) {
+  return (
+    <div className="text-center py-16">
+      <Icon size={40} className="mx-auto mb-3" style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
+      <h3 className="text-sm font-bold mb-1" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
+        {title}
+      </h3>
+      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+        {message}
       </p>
     </div>
   );
@@ -363,7 +368,6 @@ export default function StockDetailPage({
       setHistoryLoading(true);
 
       try {
-        // Fetch market data and history in parallel
         const [marketRes, historyRes] = await Promise.all([
           fetch('/api/psx/market'),
           fetch(`/api/psx/history/${decodedSymbol}`),
@@ -453,29 +457,24 @@ export default function StockDetailPage({
       ? 'var(--accent-danger)'
       : 'var(--text-muted)';
 
-  // ---- Loading skeleton ----
+  // ---- Loading ----
   if (loading) {
     return (
       <div className="animate-[fade-in_0.5s_ease-out] max-w-[900px] mx-auto">
-        <div className="flex items-center gap-3 mb-6">
-          <SkeletonBlock className="h-8 w-8 rounded-full" />
-          <SkeletonBlock className="h-6 w-40" />
-        </div>
-        <SkeletonBlock className="h-10 w-48 mb-2" />
-        <SkeletonBlock className="h-5 w-32 mb-6" />
-        <SkeletonBlock className="h-10 w-full mb-6" />
-        <SkeletonBlock className="h-[250px] w-full mb-4" />
-        <div className="grid grid-cols-2 gap-3">
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-        </div>
+        <SkeletonBlock className="h-8 w-8 rounded-full mb-4" />
+        <SkeletonBlock className="h-5 w-48 mb-2" />
+        <SkeletonBlock className="h-8 w-36 mb-2" />
+        <SkeletonBlock className="h-4 w-28 mb-6" />
+        <SkeletonBlock className="h-10 w-full mb-4" />
+        <SkeletonBlock className="h-[200px] w-full mb-4" />
+        <SkeletonBlock className="h-4 w-full mb-2" />
+        <SkeletonBlock className="h-4 w-full mb-2" />
+        <SkeletonBlock className="h-4 w-3/4" />
       </div>
     );
   }
 
-  // ---- Stock not found ----
+  // ---- Not found ----
   if (!stockData) {
     return (
       <div className="animate-[fade-in_0.5s_ease-out] max-w-[900px] mx-auto text-center py-20">
@@ -484,7 +483,7 @@ export default function StockDetailPage({
           Stock Not Found
         </h2>
         <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-          Could not find data for symbol &quot;{decodedSymbol}&quot;
+          Could not find data for &quot;{decodedSymbol}&quot;
         </p>
         <Link
           href="/stocks"
@@ -498,12 +497,12 @@ export default function StockDetailPage({
   }
 
   // ============================================
-  // Render: Header
+  // Render
   // ============================================
 
   return (
     <div className="animate-[fade-in_0.5s_ease-out] max-w-[900px] mx-auto">
-      {/* --- Header --- */}
+      {/* ---- Back + Share ---- */}
       <div className="flex items-center justify-between mb-4">
         <Link
           href="/stocks"
@@ -511,7 +510,7 @@ export default function StockDetailPage({
           style={{ color: 'var(--text-secondary)' }}
         >
           <ArrowLeft size={18} />
-          <span className="hidden sm:inline">Back to Stocks</span>
+          <span className="hidden sm:inline">Back</span>
         </Link>
         <button
           onClick={() => {
@@ -529,61 +528,56 @@ export default function StockDetailPage({
         </button>
       </div>
 
-      {/* Stock identity */}
-      <div className="flex items-start gap-3 mb-1">
+      {/* ---- Stock Identity ---- */}
+      <div className="flex items-center gap-3 mb-2">
         <StockLogo symbol={stockData.symbol} size={44} />
         <div className="flex-1 min-w-0">
-          <h1
-            className="text-lg font-bold truncate"
-            style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}
-          >
-            {stockData.name}
-          </h1>
-          <div className="flex items-center gap-2 flex-wrap mt-0.5">
+          <div className="flex items-center gap-2">
+            <h1
+              className="text-base font-bold truncate"
+              style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}
+            >
+              {stockData.name}
+            </h1>
             <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
               {stockData.symbol}
             </span>
-            {sectorInfo && (
-              <span
-                className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}
-              >
-                {sectorInfo.emoji} {sectorInfo.name}
-              </span>
-            )}
           </div>
+          {sectorInfo && (
+            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+              {sectorInfo.emoji} {sectorInfo.name}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Current price + change */}
-      <div className="mt-3 mb-5">
+      {/* ---- Price ---- */}
+      <div className="mb-4">
         <p
-          className="text-3xl font-bold"
+          className="text-[28px] font-bold leading-tight"
           style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}
         >
           PKR {formatPrice(stockData.current_price)}
         </p>
-        <div className="flex items-center gap-2 mt-1">
-          {isPositive ? <TrendingUp size={16} style={{ color: changeColor }} /> : null}
-          {isNegative ? <TrendingDown size={16} style={{ color: changeColor }} /> : null}
+        <div className="flex items-center gap-2 mt-0.5">
+          {isPositive && <TrendingUp size={14} style={{ color: changeColor }} />}
+          {isNegative && <TrendingDown size={14} style={{ color: changeColor }} />}
           <span className="text-sm font-bold" style={{ color: changeColor, fontFamily: 'var(--font-mono)' }}>
             {stockData.change >= 0 ? '+' : ''}{stockData.change.toFixed(2)}
           </span>
           <span className="text-sm font-semibold" style={{ color: changeColor, fontFamily: 'var(--font-mono)' }}>
             ({stockData.change_pct >= 0 ? '+' : ''}{stockData.change_pct.toFixed(2)}%)
           </span>
-          <span className="text-[10px] font-medium ml-2" style={{ color: 'var(--text-muted)' }}>
-            Updated {new Date(stockData.updated_at).toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' })}
+          <span className="text-[10px] ml-1" style={{ color: 'var(--text-muted)' }}>
+            {new Date(stockData.updated_at).toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' })}
           </span>
         </div>
       </div>
 
-      {/* ============================================ */}
-      {/* Tab Bar                                      */}
-      {/* ============================================ */}
+      {/* ---- Tab Bar ---- */}
       <div
-        className="flex gap-1 mb-6 overflow-x-auto hide-scrollbar pb-1"
-        style={{ borderBottom: '1px solid var(--border-light)' }}
+        className="flex gap-0 mb-5 overflow-x-auto hide-scrollbar"
+        style={{ borderBottom: '2px solid var(--border-light)' }}
       >
         {TABS.map((tab) => {
           const Icon = tab.icon;
@@ -595,14 +589,15 @@ export default function StockDetailPage({
               className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition-all duration-200 relative flex-shrink-0"
               style={{
                 color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)',
-                background: 'transparent',
+                background: isActive ? 'rgba(108, 92, 231, 0.06)' : 'transparent',
+                borderRadius: '8px 8px 0 0',
               }}
             >
-              <Icon size={14} />
+              <Icon size={13} />
               {tab.label}
               {isActive && (
                 <div
-                  className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
+                  className="absolute bottom-[-2px] left-0 right-0 h-[2px]"
                   style={{ background: 'var(--accent-primary)' }}
                 />
               )}
@@ -612,20 +607,21 @@ export default function StockDetailPage({
       </div>
 
       {/* ============================================ */}
-      {/* Tab 1: LIVE                                  */}
+      {/* Tab: LIVE                                    */}
       {/* ============================================ */}
       {activeTab === 'live' && (
         <div className="animate-[fade-in_0.3s_ease-out]">
-          {/* Chart period toggles */}
-          <div className="flex gap-1.5 mb-4 overflow-x-auto hide-scrollbar">
+          {/* Chart period pills */}
+          <div className="flex gap-1.5 mb-3 overflow-x-auto hide-scrollbar">
             {CHART_PERIODS.map((p) => (
               <button
                 key={p}
                 onClick={() => setChartPeriod(p)}
                 className="px-3 py-1.5 text-[11px] font-bold rounded-full transition-all duration-200 flex-shrink-0"
                 style={{
-                  background: chartPeriod === p ? 'var(--accent-primary)' : 'var(--bg-secondary)',
+                  background: chartPeriod === p ? 'var(--accent-primary)' : 'transparent',
                   color: chartPeriod === p ? '#fff' : 'var(--text-muted)',
+                  border: chartPeriod === p ? 'none' : '1px solid var(--border-light)',
                 }}
               >
                 {p}
@@ -633,20 +629,17 @@ export default function StockDetailPage({
             ))}
           </div>
 
-          {/* Price chart */}
-          <div
-            className="rounded-[16px] p-4 mb-5"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }}
-          >
+          {/* Chart */}
+          <div className="mb-5" style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 16 }}>
             {historyLoading ? (
-              <SkeletonBlock className="h-[220px] w-full" />
+              <SkeletonBlock className="h-[200px] w-full" />
             ) : chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
                   <defs>
                     <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#00D2D3" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#00D2D3" stopOpacity={0} />
+                      <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <XAxis
@@ -667,43 +660,43 @@ export default function StockDetailPage({
                   <Area
                     type="monotone"
                     dataKey="close"
-                    stroke="#00D2D3"
+                    stroke="var(--accent-primary)"
                     strokeWidth={2}
                     fill="url(#chartGradient)"
                   />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-[220px]">
-                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No chart data available</p>
+              <div className="flex items-center justify-center h-[200px]">
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No chart data</p>
               </div>
             )}
           </div>
 
-          {/* Stats grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
-            <StatItem label="Volume" value={formatVolume(stockData.volume)} />
-            <StatItem label="Open Price" value={formatPrice(stockData.open_price)} />
-            <StatItem label="Last Day Close (LDCP)" value={formatPrice(stockData.ldcp)} />
-          </div>
-
-          {/* Latest Quote */}
-          <h3
-            className="text-sm font-bold mb-3"
-            style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}
-          >
-            Latest Quote
-          </h3>
-          <div className="grid grid-cols-2 gap-3 mb-5">
-            <StatItem label="High" value={formatPrice(stockData.high)} />
-            <StatItem label="Low" value={formatPrice(stockData.low)} />
-            <StatItem label="Change" value={`${stockData.change >= 0 ? '+' : ''}${stockData.change.toFixed(2)}`} />
-            <StatItem label="Change %" value={`${stockData.change_pct >= 0 ? '+' : ''}${stockData.change_pct.toFixed(2)}%`} />
+          {/* Market Stats */}
+          <SectionHeader title="Market Stats" />
+          <div className="mb-5">
+            <StatRow label="Volume" value={formatVolume(stockData.volume)} />
+            <StatRow label="Open" value={formatPrice(stockData.open_price)} />
+            <StatRow label="LDCP" value={formatPrice(stockData.ldcp)} />
+            <StatRow label="High" value={formatPrice(stockData.high)} />
+            <StatRow label="Low" value={formatPrice(stockData.low)} />
+            <StatRow
+              label="Change"
+              value={`${stockData.change >= 0 ? '+' : ''}${stockData.change.toFixed(2)}`}
+              valueColor={changeColor}
+            />
+            <StatRow
+              label="Change %"
+              value={`${stockData.change_pct >= 0 ? '+' : ''}${stockData.change_pct.toFixed(2)}%`}
+              valueColor={changeColor}
+            />
           </div>
 
           {/* Day's Range */}
+          <SectionHeader title="Day's Range" />
           <RangeSlider
-            label="Day's Range"
+            label=""
             low={stockData.low}
             high={stockData.high}
             current={stockData.current_price}
@@ -711,51 +704,78 @@ export default function StockDetailPage({
 
           {/* 52-Week Range */}
           {technicals?.weekRange52 && (
-            <RangeSlider
-              label="52-Week Range"
-              low={technicals.weekRange52.low}
-              high={technicals.weekRange52.high}
-              current={stockData.current_price}
-            />
+            <>
+              <SectionHeader title="52-Week Range" />
+              <RangeSlider
+                label=""
+                low={technicals.weekRange52.low}
+                high={technicals.weekRange52.high}
+                current={stockData.current_price}
+              />
+            </>
           )}
 
           {/* Circuit Breakers */}
           {technicals?.circuitBreakers && (
-            <RangeSlider
-              label="Circuit Breakers"
-              low={technicals.circuitBreakers.lowerLock}
-              high={technicals.circuitBreakers.upperLock}
-              current={stockData.current_price}
-              lowLabel={`Lower Lock ${formatPrice(technicals.circuitBreakers.lowerLock)}`}
-              highLabel={`Upper Lock ${formatPrice(technicals.circuitBreakers.upperLock)}`}
-            />
+            <>
+              <SectionHeader title="Circuit Breakers" />
+              <div className="mb-5">
+                <StatRow label="Upper Lock" value={formatPrice(technicals.circuitBreakers.upperLock)} valueColor="var(--accent-success)" />
+                <StatRow label="Lower Lock" value={formatPrice(technicals.circuitBreakers.lowerLock)} valueColor="var(--accent-danger)" />
+              </div>
+            </>
           )}
         </div>
       )}
 
       {/* ============================================ */}
-      {/* Tab 2: FUNDAMENTALS                          */}
+      {/* Tab: FUNDAMENTALS                            */}
       {/* ============================================ */}
       {activeTab === 'fundamentals' && (
         <div className="animate-[fade-in_0.3s_ease-out]">
           {companyLoading ? (
-            <div className="space-y-4">
-              <SkeletonCard />
-              <SkeletonCard />
-              <SkeletonCard />
+            <div className="space-y-3">
+              <SkeletonBlock className="h-4 w-32 mb-2" />
+              <SkeletonBlock className="h-4 w-full" />
+              <SkeletonBlock className="h-4 w-full" />
+              <SkeletonBlock className="h-4 w-3/4" />
             </div>
           ) : companyData?.fundamentals ? (
-            <div className="space-y-5">
-              {/* Earnings */}
-              <FundamentalSection title="Earnings" data={companyData.fundamentals.earnings} />
-              {/* Performance */}
-              <FundamentalSection title="Performance" data={companyData.fundamentals.performance} />
-              {/* Payouts */}
-              <FundamentalSection title="Payouts" data={companyData.fundamentals.payouts} />
-              {/* Valuations */}
-              <FundamentalSection title="Valuations" data={companyData.fundamentals.valuations} />
-              {/* Financial Health */}
-              <FundamentalSection title="Financial Health" data={companyData.fundamentals.financial_health} />
+            <div>
+              {/* Render each fundamental section */}
+              {[
+                { key: 'earnings', title: 'Earnings' },
+                { key: 'performance', title: 'Performance' },
+                { key: 'payouts', title: 'Payouts' },
+                { key: 'valuations', title: 'Valuations' },
+                { key: 'financial_health', title: 'Financial Health' },
+              ].map(({ key, title }) => {
+                const data = companyData.fundamentals[key] as Record<string, any> | undefined;
+                if (!data || Object.keys(data).length === 0) return null;
+
+                return (
+                  <div key={key} className="mb-5">
+                    <SectionHeader title={title} />
+                    {Object.entries(data).map(([k, val], i) => {
+                      const label = k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+                      let displayValue: string;
+                      let valueColor: string | undefined;
+
+                      if (typeof val === 'number') {
+                        displayValue = val.toFixed(2);
+                        if (val > 0) valueColor = 'var(--accent-success)';
+                        else if (val < 0) valueColor = 'var(--accent-danger)';
+                      } else if (val === null || val === undefined) {
+                        displayValue = 'N/A';
+                      } else {
+                        displayValue = String(val);
+                      }
+
+                      return <StatRow key={i} label={label} value={displayValue} valueColor={valueColor} />;
+                    })}
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <EmptyTabState
@@ -768,7 +788,7 @@ export default function StockDetailPage({
       )}
 
       {/* ============================================ */}
-      {/* Tab 3: TECHNICALS                            */}
+      {/* Tab: TECHNICALS                              */}
       {/* ============================================ */}
       {activeTab === 'technicals' && (
         <div className="animate-[fade-in_0.3s_ease-out]">
@@ -779,21 +799,22 @@ export default function StockDetailPage({
               message="Not enough historical data to compute technical indicators."
             />
           ) : (
-            <div className="space-y-5">
+            <div>
               {/* Technical Indicators */}
               {technicals.indicators.length > 0 && (
-                <SectionCard title="Technical Indicators">
+                <div className="mb-5">
+                  <SectionHeader title="Technical Indicators" />
                   {technicals.indicators.map((ind, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between py-2.5 px-1"
-                      style={{ borderBottom: i < technicals.indicators.length - 1 ? '1px solid var(--border-light)' : 'none' }}
+                      className="flex items-center justify-between py-2.5"
+                      style={{ borderBottom: '1px dashed var(--border-light)' }}
                     >
                       <div>
                         <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
                           {ind.name}
                         </span>
-                        <span className="text-[10px] ml-1.5" style={{ color: 'var(--text-muted)' }}>
+                        <span className="text-[10px] ml-1" style={{ color: 'var(--text-muted)' }}>
                           ({ind.params})
                         </span>
                       </div>
@@ -805,70 +826,77 @@ export default function StockDetailPage({
                       </div>
                     </div>
                   ))}
-                </SectionCard>
+                </div>
               )}
 
               {/* Pivot Points */}
               {technicals.pivotPoints.length > 0 && (
-                <SectionCard title="Pivot Points">
+                <div className="mb-5">
+                  <SectionHeader title="Pivot Points" />
                   {technicals.pivotPoints.map((pp, i) => {
-                    const pillColor =
-                      pp.type === 'resistance'
-                        ? { bg: 'rgba(0,184,148,0.12)', text: 'var(--accent-success)' }
-                        : pp.type === 'support'
-                          ? { bg: 'rgba(255,82,82,0.12)', text: 'var(--accent-danger)' }
-                          : { bg: 'var(--bg-secondary)', text: 'var(--text-muted)' };
+                    const pillBg =
+                      pp.type === 'resistance' ? '#00B894'
+                      : pp.type === 'support' ? '#FF5252'
+                      : '#9CA3C4';
 
                     return (
                       <div
                         key={i}
-                        className="flex items-center justify-between py-2.5 px-1"
-                        style={{ borderBottom: i < technicals.pivotPoints.length - 1 ? '1px solid var(--border-light)' : 'none' }}
+                        className="flex items-center justify-between py-2.5"
+                        style={{ borderBottom: '1px dashed var(--border-light)' }}
                       >
                         <div className="flex items-center gap-2">
                           <span
-                            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                            style={{ background: pillColor.bg, color: pillColor.text }}
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
+                            style={{ background: pillBg }}
                           >
                             {pp.label}
                           </span>
-                          <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                             {pp.description}
                           </span>
                         </div>
                         <span
-                          className="text-xs font-bold px-2.5 py-1 rounded-full"
-                          style={{ background: pillColor.bg, color: pillColor.text, fontFamily: 'var(--font-mono)' }}
+                          className="text-xs font-bold px-2.5 py-0.5 rounded-full text-white"
+                          style={{ background: pillBg, fontFamily: 'var(--font-mono)' }}
                         >
                           {pp.value.toFixed(2)}
                         </span>
                       </div>
                     );
                   })}
-                </SectionCard>
+                </div>
               )}
 
               {/* Moving Averages */}
               {technicals.movingAverages.length > 0 && (
-                <SectionCard title="Moving Averages">
+                <div className="mb-5">
+                  <SectionHeader title="Moving Averages" />
                   {technicals.movingAverages.map((ma, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between py-2.5 px-1"
-                      style={{ borderBottom: i < technicals.movingAverages.length - 1 ? '1px solid var(--border-light)' : 'none' }}
+                      className="flex items-center justify-between py-2.5"
+                      style={{ borderBottom: '1px dashed var(--border-light)' }}
                     >
                       <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
                         {ma.label}
                       </span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                        <span
+                          className="text-xs font-bold px-2 py-0.5 rounded-full"
+                          style={{
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--text-primary)',
+                            fontFamily: 'var(--font-mono)',
+                          }}
+                        >
                           {ma.value.toFixed(2)}
                         </span>
                         <SignalBadge signal={ma.signal} />
                       </div>
                     </div>
                   ))}
-                </SectionCard>
+                </div>
               )}
             </div>
           )}
@@ -876,35 +904,33 @@ export default function StockDetailPage({
       )}
 
       {/* ============================================ */}
-      {/* Tab 4: ANNOUNCEMENTS                         */}
+      {/* Tab: ANNOUNCEMENTS (News)                    */}
       {/* ============================================ */}
       {activeTab === 'announcements' && (
         <div className="animate-[fade-in_0.3s_ease-out]">
           {companyLoading ? (
-            <div className="space-y-3">
-              <SkeletonCard />
-              <SkeletonCard />
-              <SkeletonCard />
+            <div className="space-y-2">
+              <SkeletonBlock className="h-4 w-full" />
+              <SkeletonBlock className="h-4 w-full" />
+              <SkeletonBlock className="h-4 w-3/4" />
             </div>
           ) : companyData?.announcements && companyData.announcements.length > 0 ? (
-            <div className="space-y-3">
+            <div>
+              <SectionHeader title="Announcements" />
+              {/* Flat list */}
               {companyData.announcements.map((ann: any, i: number) => (
                 <div
                   key={i}
-                  className="rounded-[16px] p-4 transition-all duration-200"
-                  style={{
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border-light)',
-                    boxShadow: 'var(--shadow-sm)',
-                  }}
+                  className="py-3"
+                  style={{ borderBottom: '1px solid var(--border-light)' }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
-                        {ann.date || 'N/A'} {ann.time ? `at ${ann.time}` : ''}
-                      </p>
-                      <p className="text-xs font-semibold leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+                      <p className="text-xs font-semibold leading-relaxed mb-1" style={{ color: 'var(--text-primary)' }}>
                         {ann.title || ann.description || 'Announcement'}
+                      </p>
+                      <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                        {ann.date || 'N/A'} {ann.time ? `at ${ann.time}` : ''}
                       </p>
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -913,10 +939,10 @@ export default function StockDetailPage({
                           href={ann.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-[8px] text-[10px] font-bold transition-opacity hover:opacity-80"
-                          style={{ background: 'rgba(108,92,231,0.1)', color: 'var(--accent-primary)' }}
+                          className="flex items-center gap-1 px-2 py-1 rounded-[6px] text-[10px] font-bold transition-opacity hover:opacity-80"
+                          style={{ background: 'var(--accent-primary)', color: '#fff' }}
                         >
-                          <Eye size={12} /> VIEW
+                          <Eye size={11} /> VIEW
                         </a>
                       )}
                       {ann.pdf_url && (
@@ -924,10 +950,10 @@ export default function StockDetailPage({
                           href={ann.pdf_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-[8px] text-[10px] font-bold transition-opacity hover:opacity-80"
-                          style={{ background: 'rgba(255,82,82,0.1)', color: 'var(--accent-danger)' }}
+                          className="flex items-center gap-1 px-2 py-1 rounded-[6px] text-[10px] font-bold transition-opacity hover:opacity-80"
+                          style={{ background: 'var(--accent-danger)', color: '#fff' }}
                         >
-                          <FileText size={12} /> PDF
+                          <FileText size={11} /> PDF
                         </a>
                       )}
                     </div>
@@ -946,109 +972,87 @@ export default function StockDetailPage({
       )}
 
       {/* ============================================ */}
-      {/* Tab 5: PROFILE                               */}
+      {/* Tab: PROFILE                                 */}
       {/* ============================================ */}
       {activeTab === 'profile' && (
         <div className="animate-[fade-in_0.3s_ease-out]">
           {companyLoading ? (
-            <div className="space-y-4">
-              <SkeletonCard />
-              <SkeletonCard />
+            <div className="space-y-2">
+              <SkeletonBlock className="h-4 w-full" />
+              <SkeletonBlock className="h-4 w-3/4" />
             </div>
           ) : companyData?.profile ? (
-            <div className="space-y-5">
-              {/* Company header */}
-              <div
-                className="rounded-[16px] p-5"
-                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }}
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <StockLogo symbol={stockData.symbol} size={48} />
-                  <div>
-                    <p className="text-sm font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
-                      {stockData.symbol}
-                    </p>
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                      {stockData.name}
-                    </p>
-                    {sectorInfo && (
-                      <span
-                        className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1"
-                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}
-                      >
-                        {sectorInfo.emoji} {sectorInfo.name}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Company Background */}
-                {companyData.profile.background && (
-                  <div className="mt-3">
-                    <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-secondary)' }}>
-                      Company Background
-                    </p>
-                    <p
-                      className="text-xs leading-relaxed"
-                      style={{ color: 'var(--text-secondary)' }}
+            <div>
+              {/* Company Background */}
+              {companyData.profile.background && (
+                <div className="mb-5">
+                  <SectionHeader title="About" />
+                  <p
+                    className="text-xs leading-relaxed"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    {profileExpanded
+                      ? companyData.profile.background
+                      : companyData.profile.background.slice(0, 200) +
+                        (companyData.profile.background.length > 200 ? '...' : '')}
+                  </p>
+                  {companyData.profile.background.length > 200 && (
+                    <button
+                      onClick={() => setProfileExpanded(!profileExpanded)}
+                      className="flex items-center gap-1 text-[11px] font-bold mt-2 transition-colors"
+                      style={{ color: 'var(--accent-primary)' }}
                     >
-                      {profileExpanded
-                        ? companyData.profile.background
-                        : companyData.profile.background.slice(0, 200) +
-                          (companyData.profile.background.length > 200 ? '...' : '')}
-                    </p>
-                    {companyData.profile.background.length > 200 && (
-                      <button
-                        onClick={() => setProfileExpanded(!profileExpanded)}
-                        className="flex items-center gap-1 text-[10px] font-bold mt-1 transition-colors"
-                        style={{ color: 'var(--accent-primary)' }}
-                      >
-                        {profileExpanded ? 'Show less' : 'Show more'}
-                        {profileExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Equity Profile */}
-              {companyData.profile.equity && (
-                <SectionCard title="Equity Profile">
-                  {companyData.profile.equity.market_cap != null && (
-                    <FundamentalRow label="Market Cap" value={formatLargeNumber(companyData.profile.equity.market_cap)} />
+                      {profileExpanded ? 'Show less' : 'Read more'}
+                      {profileExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    </button>
                   )}
-                  {companyData.profile.equity.total_shares != null && (
-                    <FundamentalRow label="Total Shares" value={formatLargeNumber(companyData.profile.equity.total_shares)} />
-                  )}
-                  {companyData.profile.equity.free_float != null && (
-                    <FundamentalRow label="Free Float" value={formatLargeNumber(companyData.profile.equity.free_float)} />
-                  )}
-                  {companyData.profile.equity.free_float_pct != null && (
-                    <FundamentalRow label="Free Float %" value={`${companyData.profile.equity.free_float_pct.toFixed(2)}%`} />
-                  )}
-                </SectionCard>
+                </div>
               )}
 
-              {/* Top Executives */}
+              {/* Equity */}
+              {companyData.profile.equity && (
+                <div className="mb-5">
+                  <SectionHeader title="Equity Profile" />
+                  {companyData.profile.equity.market_cap != null && (
+                    <StatRow label="Market Cap" value={formatLargeNumber(companyData.profile.equity.market_cap)} />
+                  )}
+                  {companyData.profile.equity.total_shares != null && (
+                    <StatRow label="Total Shares" value={formatLargeNumber(companyData.profile.equity.total_shares)} />
+                  )}
+                  {companyData.profile.equity.free_float != null && (
+                    <StatRow label="Free Float" value={formatLargeNumber(companyData.profile.equity.free_float)} />
+                  )}
+                  {companyData.profile.equity.free_float_pct != null && (
+                    <StatRow label="Free Float %" value={`${companyData.profile.equity.free_float_pct.toFixed(2)}%`} />
+                  )}
+                </div>
+              )}
+
+              {/* Executives */}
               {companyData.profile.executives && (
-                <SectionCard title="Top Executives">
+                <div className="mb-5">
+                  <SectionHeader title="Executives" />
                   {companyData.profile.executives.chairperson && (
-                    <FundamentalRow label="Chairperson" value={companyData.profile.executives.chairperson} />
+                    <StatRow label="Chairperson" value={companyData.profile.executives.chairperson} />
                   )}
                   {companyData.profile.executives.ceo && (
-                    <FundamentalRow label="CEO" value={companyData.profile.executives.ceo} />
+                    <StatRow label="CEO" value={companyData.profile.executives.ceo} />
                   )}
                   {companyData.profile.executives.secretary && (
-                    <FundamentalRow label="Secretary" value={companyData.profile.executives.secretary} />
+                    <StatRow label="Secretary" value={companyData.profile.executives.secretary} />
                   )}
-                </SectionCard>
+                </div>
               )}
 
               {/* Contact */}
               {companyData.profile.contact && (
-                <SectionCard title="Contact">
+                <div className="mb-5">
+                  <SectionHeader title="Contact" />
                   {companyData.profile.contact.address && (
-                    <div className="flex items-start gap-2 py-2.5" style={{ borderBottom: '1px solid var(--border-light)' }}>
+                    <div
+                      className="flex items-start gap-2 py-2.5"
+                      style={{ borderBottom: '1px dashed var(--border-light)' }}
+                    >
                       <MapPin size={14} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--text-muted)' }} />
                       <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                         {companyData.profile.contact.address}
@@ -1056,7 +1060,10 @@ export default function StockDetailPage({
                     </div>
                   )}
                   {companyData.profile.contact.website && (
-                    <div className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid var(--border-light)' }}>
+                    <div
+                      className="flex items-center justify-between py-2.5"
+                      style={{ borderBottom: '1px dashed var(--border-light)' }}
+                    >
                       <div className="flex items-center gap-2">
                         <Globe size={14} style={{ color: 'var(--text-muted)' }} />
                         <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
@@ -1067,20 +1074,20 @@ export default function StockDetailPage({
                         href={companyData.profile.contact.website.startsWith('http') ? companyData.profile.contact.website : `https://${companyData.profile.contact.website}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-[8px] text-[10px] font-bold transition-opacity hover:opacity-80"
-                        style={{ background: 'rgba(108,92,231,0.1)', color: 'var(--accent-primary)' }}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-[6px] text-[10px] font-bold transition-opacity hover:opacity-80"
+                        style={{ background: 'var(--accent-primary)', color: '#fff' }}
                       >
                         VISIT <ExternalLink size={10} />
                       </a>
                     </div>
                   )}
                   {companyData.profile.contact.registrar && (
-                    <FundamentalRow label="Registrar" value={companyData.profile.contact.registrar} />
+                    <StatRow label="Registrar" value={companyData.profile.contact.registrar} />
                   )}
                   {companyData.profile.contact.auditor && (
-                    <FundamentalRow label="Auditor" value={companyData.profile.contact.auditor} />
+                    <StatRow label="Auditor" value={companyData.profile.contact.auditor} />
                   )}
-                </SectionCard>
+                </div>
               )}
             </div>
           ) : (
@@ -1094,25 +1101,26 @@ export default function StockDetailPage({
       )}
 
       {/* ============================================ */}
-      {/* Tab 6: COMPETITORS                           */}
+      {/* Tab: COMPETITORS (Peers)                     */}
       {/* ============================================ */}
       {activeTab === 'competitors' && (
         <div className="animate-[fade-in_0.3s_ease-out]">
           {competitors.length === 0 ? (
             <EmptyTabState
               icon={Users}
-              title="No Competitors Found"
+              title="No Peers Found"
               message="No other stocks found in the same sector."
             />
           ) : (
-            <div className="space-y-2">
-              <p className="text-xs font-medium mb-3" style={{ color: 'var(--text-muted)' }}>
-                {competitors.length} stocks in {sectorInfo?.name || 'the same sector'}
+            <div>
+              <SectionHeader title={`${sectorInfo?.name || 'Sector'} Peers`} />
+              <p className="text-[10px] mb-3" style={{ color: 'var(--text-muted)' }}>
+                {competitors.length} stocks in same sector
               </p>
               {competitors.map((comp) => {
                 const compPositive = comp.change > 0;
                 const compNegative = comp.change < 0;
-                const compChangeColor = compPositive
+                const compColor = compPositive
                   ? 'var(--accent-success)'
                   : compNegative
                     ? 'var(--accent-danger)'
@@ -1122,21 +1130,10 @@ export default function StockDetailPage({
                   <Link
                     key={comp.symbol}
                     href={`/stocks/${comp.symbol}`}
-                    className="flex items-center gap-3 p-3 rounded-[12px] transition-all duration-150"
-                    style={{
-                      background: 'var(--bg-card)',
-                      border: '1px solid var(--border-light)',
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-sm)';
-                      (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.boxShadow = 'none';
-                      (e.currentTarget as HTMLElement).style.transform = 'none';
-                    }}
+                    className="flex items-center gap-3 py-3 transition-colors duration-150"
+                    style={{ borderBottom: '1px solid var(--border-light)' }}
                   >
-                    <StockLogo symbol={comp.symbol} size={36} />
+                    <StockLogo symbol={comp.symbol} size={32} />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
                         {comp.symbol}
@@ -1149,7 +1146,7 @@ export default function StockDetailPage({
                       <p className="text-xs font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
                         {formatPrice(comp.current_price)}
                       </p>
-                      <p className="text-[10px] font-semibold" style={{ color: compChangeColor, fontFamily: 'var(--font-mono)' }}>
+                      <p className="text-[10px] font-semibold" style={{ color: compColor, fontFamily: 'var(--font-mono)' }}>
                         {comp.change_pct >= 0 ? '+' : ''}{comp.change_pct.toFixed(2)}%
                       </p>
                     </div>
@@ -1163,89 +1160,6 @@ export default function StockDetailPage({
 
       {/* Bottom spacer for mobile nav */}
       <div className="h-24" />
-    </div>
-  );
-}
-
-// ============================================
-// Reusable Section Components
-// ============================================
-
-/** Card wrapper for content sections */
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div
-      className="rounded-[16px] p-4"
-      style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }}
-    >
-      <h3
-        className="text-sm font-bold mb-3"
-        style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}
-      >
-        {title}
-      </h3>
-      {children}
-    </div>
-  );
-}
-
-/** Renders a section of fundamental data from the API */
-function FundamentalSection({ title, data }: { title: string; data?: Record<string, any> }) {
-  if (!data || Object.keys(data).length === 0) return null;
-
-  return (
-    <SectionCard title={title}>
-      {Object.entries(data).map(([key, val], i) => {
-        // Format the key from snake_case to Title Case
-        const label = key
-          .replace(/_/g, ' ')
-          .replace(/\b\w/g, (c) => c.toUpperCase());
-
-        let displayValue: string;
-        let isPositive: boolean | null = null;
-
-        if (typeof val === 'number') {
-          displayValue = val.toFixed(2);
-          if (val > 0) isPositive = true;
-          else if (val < 0) isPositive = false;
-        } else if (val === null || val === undefined) {
-          displayValue = 'N/A';
-        } else {
-          displayValue = String(val);
-        }
-
-        return (
-          <FundamentalRow
-            key={i}
-            label={label}
-            value={displayValue}
-            isPositive={isPositive}
-          />
-        );
-      })}
-    </SectionCard>
-  );
-}
-
-/** Empty state displayed when tab has no content */
-function EmptyTabState({
-  icon: Icon,
-  title,
-  message,
-}: {
-  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties; className?: string }>;
-  title: string;
-  message: string;
-}) {
-  return (
-    <div className="text-center py-16">
-      <Icon size={40} className="mx-auto mb-3" style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
-      <h3 className="text-sm font-bold mb-1" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
-        {title}
-      </h3>
-      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-        {message}
-      </p>
     </div>
   );
 }
