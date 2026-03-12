@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
+import Link from 'next/link';
 import {
   TrendingUp,
   TrendingDown,
@@ -17,6 +18,7 @@ import Button from '@/components/ui/Button';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 import { useMarketData } from '@/hooks/useMarketData';
 import { getStockLogoUrl } from '@/lib/stock-logos';
+import { getSectorDisplay } from '@/lib/constants';
 import type { StockCache } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -214,13 +216,13 @@ function StockRow({ stock }: { stock: StockCache }) {
             {stock.symbol}
           </span>
           <span
-            className="hidden sm:inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full truncate max-w-[120px]"
+            className="hidden sm:inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full truncate max-w-[160px]"
             style={{
               background: 'var(--bg-secondary)',
               color: 'var(--text-muted)',
             }}
           >
-            {stock.sector}
+            {getSectorDisplay(stock.sector).emoji} {getSectorDisplay(stock.sector).name}
           </span>
         </div>
         <p
@@ -342,7 +344,7 @@ function StockCard({ stock }: { stock: StockCache }) {
                 color: 'var(--text-muted)',
               }}
             >
-              {stock.sector}
+              {getSectorDisplay(stock.sector).emoji} {getSectorDisplay(stock.sector).name}
             </span>
             <div className="flex items-center gap-1.5">
               {isPositive && <TrendingUp size={12} style={{ color: changeColor }} />}
@@ -384,13 +386,15 @@ export default function StocksPage() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Derive unique sectors from stock data
+  // Derive unique sectors from stock data, sorted by display name
   const sectors = useMemo(() => {
     const sectorSet = new Set<string>();
     for (const s of stocks) {
       if (s.sector) sectorSet.add(s.sector);
     }
-    return Array.from(sectorSet).sort();
+    return Array.from(sectorSet).sort((a, b) =>
+      getSectorDisplay(a).name.localeCompare(getSectorDisplay(b).name)
+    );
   }, [stocks]);
 
   // Filter and sort stocks
@@ -579,11 +583,14 @@ export default function StocksPage() {
             }}
           >
             <option value="all">All Sectors</option>
-            {sectors.map((sector) => (
-              <option key={sector} value={sector}>
-                {sector}
-              </option>
-            ))}
+            {sectors.map((code) => {
+              const { name, emoji } = getSectorDisplay(code);
+              return (
+                <option key={code} value={code}>
+                  {emoji} {name}
+                </option>
+              );
+            })}
           </select>
           <ChevronDown
             size={14}
@@ -689,7 +696,9 @@ export default function StocksPage() {
 
               {/* Stock rows */}
               {visibleStocks.map((stock) => (
-                <StockRow key={stock.symbol} stock={stock} />
+                <Link key={stock.symbol} href={`/stocks/${encodeURIComponent(stock.symbol)}`} className="block">
+                  <StockRow stock={stock} />
+                </Link>
               ))}
             </Card>
           </div>
@@ -697,7 +706,9 @@ export default function StocksPage() {
           {/* Mobile card view */}
           <div className="sm:hidden flex flex-col gap-3">
             {visibleStocks.map((stock) => (
-              <StockCard key={stock.symbol} stock={stock} />
+              <Link key={stock.symbol} href={`/stocks/${encodeURIComponent(stock.symbol)}`}>
+                <StockCard stock={stock} />
+              </Link>
             ))}
           </div>
 
