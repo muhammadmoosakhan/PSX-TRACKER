@@ -114,6 +114,7 @@ function parseHTMLMarketData(html: string): StockCache[] {
 
 /**
  * Fetch EOD history for a specific symbol
+ * PSX returns { status, message, data: [[timestamp, open, volume, close], ...] }
  */
 export async function fetchPSXHistory(symbol: string): Promise<StockHistoryPoint[]> {
   const res = await fetch(`${PSX_HISTORY_URL}/${encodeURIComponent(symbol)}`, {
@@ -132,14 +133,31 @@ export async function fetchPSXHistory(symbol: string): Promise<StockHistoryPoint
   try {
     const json = JSON.parse(text);
     const data = Array.isArray(json) ? json : (json.data || []);
-    return data.map((row: Record<string, unknown>) => ({
-      date: String(row.DATE || row.date || row.Date || ''),
-      open: toNum(row.OPEN || row.open || row.Open),
-      high: toNum(row.HIGH || row.high || row.High),
-      low: toNum(row.LOW || row.low || row.Low),
-      close: toNum(row.CLOSE || row.close || row.Close),
-      volume: toNum(row.VOLUME || row.volume || row.Volume),
-    }));
+
+    return data.map((row: unknown) => {
+      // PSX returns arrays: [timestamp, open, volume, close]
+      if (Array.isArray(row)) {
+        const timestamp = Number(row[0]);
+        const open = toNum(row[1]);
+        const volume = toNum(row[2]);
+        const close = toNum(row[3]);
+        const high = Math.max(open, close);
+        const low = Math.min(open, close);
+        const date = new Date(timestamp * 1000).toISOString().split('T')[0]; // "YYYY-MM-DD"
+        return { date, open, high, low, close, volume };
+      }
+
+      // Fallback: named object fields
+      const obj = row as Record<string, unknown>;
+      return {
+        date: String(obj.DATE || obj.date || obj.Date || ''),
+        open: toNum(obj.OPEN || obj.open || obj.Open),
+        high: toNum(obj.HIGH || obj.high || obj.High),
+        low: toNum(obj.LOW || obj.low || obj.Low),
+        close: toNum(obj.CLOSE || obj.close || obj.Close),
+        volume: toNum(obj.VOLUME || obj.volume || obj.Volume),
+      };
+    });
   } catch {
     return [];
   }
