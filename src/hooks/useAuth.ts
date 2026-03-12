@@ -19,6 +19,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -85,9 +86,29 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     return { error };
   }, []);
 
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    // Verify current password by re-authenticating
+    const email = user?.email;
+    if (!email) return { error: 'Not logged in' };
+
+    const { error: signInErr } = await supabase.auth.signInWithPassword({
+      email,
+      password: currentPassword,
+    });
+    if (signInErr) return { error: 'Current password is incorrect' };
+
+    // Update to new password
+    const { error: updateErr } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    if (updateErr) return { error: updateErr.message };
+
+    return { error: null };
+  }, [user]);
+
   return React.createElement(
     AuthContext.Provider,
-    { value: { user, loading, signIn, signUp, signOut, resetPassword } },
+    { value: { user, loading, signIn, signUp, signOut, resetPassword, changePassword } },
     children
   );
 }

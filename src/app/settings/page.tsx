@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { RefreshCw, Download, Sun, Moon, Monitor, LogOut, RotateCcw, Trash2, AlertTriangle } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { RefreshCw, Download, Sun, Moon, Monitor, LogOut, RotateCcw, Trash2, AlertTriangle, Lock, Eye, EyeOff } from 'lucide-react';
 import PageHeader from '@/components/layout/PageHeader';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -53,7 +53,7 @@ const riskThresholds: SettingField[] = [
 ];
 
 export default function SettingsPage() {
-  const { signOut } = useAuth();
+  const { signOut, changePassword } = useAuth();
   const { settings, loading, updateSetting, resetSettings } = useSettings();
   const { trades, deleteAllTrades } = useTrades();
   const { getPriceMap } = useMarketData();
@@ -107,6 +107,9 @@ export default function SettingsPage() {
       <div className="grid gap-6 md:grid-cols-2">
         {/* Profile */}
         <ProfileSection />
+
+        {/* Change Password */}
+        <ChangePasswordCard changePassword={changePassword} showToast={showToast} />
 
         {/* Trading Costs */}
         <SettingsGroup
@@ -347,6 +350,145 @@ export default function SettingsPage() {
         </div>
       </Modal>
     </div>
+  );
+}
+
+function ChangePasswordCard({
+  changePassword,
+  showToast,
+}: Readonly<{
+  changePassword: (current: string, newPass: string) => Promise<{ error: string | null }>;
+  showToast: (type: 'success' | 'error', msg: string) => void;
+}>) {
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPw.length < 6) {
+      showToast('error', 'New password must be at least 6 characters');
+      return;
+    }
+    if (newPw !== confirmPw) {
+      showToast('error', 'New passwords do not match');
+      return;
+    }
+    setSaving(true);
+    const { error } = await changePassword(currentPw, newPw);
+    setSaving(false);
+    if (error) {
+      showToast('error', error);
+    } else {
+      showToast('success', 'Password changed successfully');
+      setCurrentPw('');
+      setNewPw('');
+      setConfirmPw('');
+    }
+  };
+
+  const inputStyle = {
+    background: 'var(--input-bg)',
+    color: 'var(--text-primary)',
+    border: '1px solid var(--border-light)',
+  };
+
+  return (
+    <Card hoverable={false} className="md:col-span-2">
+      <h3
+        className="text-base font-semibold mb-4 flex items-center gap-2"
+        style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
+      >
+        <Lock size={18} style={{ color: 'var(--accent-primary)' }} />
+        Change Password
+      </h3>
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-3 max-w-md">
+        {/* Current Password */}
+        <div>
+          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+            Current Password
+          </label>
+          <div className="relative">
+            <input
+              type={showCurrent ? 'text' : 'password'}
+              value={currentPw}
+              onChange={(e) => setCurrentPw(e.target.value)}
+              required
+              className="w-full px-3 py-2.5 pr-10 text-sm rounded-[12px] outline-none transition-all focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-opacity-30"
+              style={inputStyle}
+              placeholder="Enter current password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowCurrent((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+        </div>
+
+        {/* New Password */}
+        <div>
+          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+            New Password
+          </label>
+          <div className="relative">
+            <input
+              type={showNew ? 'text' : 'password'}
+              value={newPw}
+              onChange={(e) => setNewPw(e.target.value)}
+              required
+              minLength={6}
+              className="w-full px-3 py-2.5 pr-10 text-sm rounded-[12px] outline-none transition-all focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-opacity-30"
+              style={inputStyle}
+              placeholder="At least 6 characters"
+            />
+            <button
+              type="button"
+              onClick={() => setShowNew((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Confirm New Password */}
+        <div>
+          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+            Confirm New Password
+          </label>
+          <input
+            type="password"
+            value={confirmPw}
+            onChange={(e) => setConfirmPw(e.target.value)}
+            required
+            className="w-full px-3 py-2.5 text-sm rounded-[12px] outline-none transition-all focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-opacity-30"
+            style={inputStyle}
+            placeholder="Re-enter new password"
+          />
+        </div>
+
+        <Button
+          type="submit"
+          variant="primary"
+          size="md"
+          loading={saving}
+          disabled={!currentPw || !newPw || !confirmPw}
+          className="w-full sm:w-auto"
+        >
+          <Lock size={14} />
+          Update Password
+        </Button>
+      </form>
+    </Card>
   );
 }
 
