@@ -206,17 +206,17 @@ function StockRow({ stock }: { stock: StockCache }) {
       {/* Logo */}
       <StockLogo symbol={stock.symbol} />
 
-      {/* Symbol + Name */}
+      {/* Symbol + Name + Sector */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span
-            className="text-sm font-bold truncate"
+            className="text-sm font-bold"
             style={{ color: 'var(--text-primary)' }}
           >
             {stock.symbol}
           </span>
           <span
-            className="hidden sm:inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full truncate max-w-[160px]"
+            className="hidden sm:inline-flex text-[10px] font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap"
             style={{
               background: 'var(--bg-secondary)',
               color: 'var(--text-muted)',
@@ -229,7 +229,7 @@ function StockRow({ stock }: { stock: StockCache }) {
           className="text-xs truncate mt-0.5"
           style={{ color: 'var(--text-secondary)' }}
         >
-          {stock.name}
+          {stock.name !== stock.symbol ? stock.name : stock.symbol}
         </p>
       </div>
 
@@ -338,7 +338,7 @@ function StockCard({ stock }: { stock: StockCache }) {
           </p>
           <div className="flex items-center justify-between mt-2">
             <span
-              className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+              className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap"
               style={{
                 background: 'var(--bg-secondary)',
                 color: 'var(--text-muted)',

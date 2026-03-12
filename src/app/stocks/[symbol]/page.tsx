@@ -162,72 +162,80 @@ function StatRow({ label, value, valueColor }: { label: string; value: string; v
   );
 }
 
-/** Dotted range slider with circle dot indicator */
+/** Clean range slider with thin track and dot indicator */
 function RangeSlider({
-  label,
   low,
   high,
   current,
 }: {
-  label: string;
   low: number;
   high: number;
   current: number;
 }) {
   const pct = rangePosition(current, low, high);
+  // Clamp label position so it doesn't overflow at edges
+  const labelPct = Math.max(8, Math.min(92, pct));
 
   return (
-    <div className="mb-5">
-      <p className="text-xs font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>
-        {label}
-      </p>
-      <div className="relative" style={{ height: 32 }}>
-        {/* Current value label above dot */}
+    <div className="mb-5 px-1">
+      {/* Current value label */}
+      <div className="relative mb-2" style={{ height: 16 }}>
         <div
-          className="absolute text-[10px] font-bold"
+          className="absolute text-[11px] font-bold whitespace-nowrap"
           style={{
-            left: `${pct}%`,
+            left: `${labelPct}%`,
             transform: 'translateX(-50%)',
-            top: 0,
             color: 'var(--accent-primary)',
             fontFamily: 'var(--font-mono)',
           }}
         >
           {formatPrice(current)}
         </div>
+      </div>
 
-        {/* Dotted line */}
+      {/* Track + dot */}
+      <div className="relative" style={{ height: 12 }}>
+        {/* Track line */}
         <div
-          className="absolute w-full"
+          className="absolute w-full rounded-full"
           style={{
-            top: 20,
-            height: 2,
-            backgroundImage: 'radial-gradient(circle, var(--text-muted) 1px, transparent 1px)',
-            backgroundSize: '8px 2px',
-            backgroundRepeat: 'repeat-x',
-            opacity: 0.5,
+            top: 5,
+            height: 3,
+            background: 'var(--border-light)',
           }}
         />
-
-        {/* Dot indicator */}
+        {/* Filled portion */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            top: 5,
+            height: 3,
+            width: `${pct}%`,
+            background: 'var(--accent-primary)',
+            opacity: 0.4,
+          }}
+        />
+        {/* Dot */}
         <div
           className="absolute rounded-full"
           style={{
             left: `${pct}%`,
-            top: 16,
-            width: 10,
-            height: 10,
+            top: 1,
+            width: 12,
+            height: 12,
             transform: 'translateX(-50%)',
             background: 'var(--accent-primary)',
             boxShadow: '0 0 0 3px rgba(108, 92, 231, 0.2)',
           }}
         />
       </div>
-      <div className="flex justify-between mt-1">
-        <span className="text-[10px]" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+
+      {/* Low / High labels */}
+      <div className="flex justify-between mt-2">
+        <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
           {formatPrice(low)}
         </span>
-        <span className="text-[10px]" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+        <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
           {formatPrice(high)}
         </span>
       </div>
@@ -251,6 +259,224 @@ function SignalBadge({ signal }: { signal: 'BUY' | 'SELL' | 'NEUTRAL' }) {
     >
       {signal}
     </span>
+  );
+}
+
+/** Format a fundamental value for display */
+function fmtVal(v: number | null, pct?: boolean): string {
+  if (v === null || v === undefined) return '-';
+  if (pct) return `${v.toFixed(2)}%`;
+  if (Math.abs(v) >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
+  if (Math.abs(v) >= 1e6) return `${(v / 1e6).toFixed(2)}M`;
+  return v.toFixed(2);
+}
+
+/** Color for a numeric value: green positive, red negative */
+function valColor(v: number | null): string {
+  if (v === null || v === undefined || v === 0) return 'var(--text-primary)';
+  return v > 0 ? 'var(--accent-success)' : 'var(--accent-danger)';
+}
+
+/** Multi-column metric grid (like EPS 4-col, P/E 2-col, Margins 4-col, etc.) */
+function MetricGrid({ items }: { items: { header: string; value: number | null; pct?: boolean }[] }) {
+  const valid = items.filter((it) => it.value !== null && it.value !== undefined);
+  if (valid.length === 0) return null;
+
+  return (
+    <div
+      className="grid gap-0 mb-3"
+      style={{
+        gridTemplateColumns: `repeat(${Math.min(valid.length, 4)}, 1fr)`,
+        borderTop: '1px dashed var(--border-light)',
+        borderBottom: '1px dashed var(--border-light)',
+      }}
+    >
+      {valid.map((it, i) => (
+        <div key={i} className="text-center py-2.5" style={{ borderRight: i < valid.length - 1 ? '1px dashed var(--border-light)' : 'none' }}>
+          <p className="text-[9px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>
+            {it.header}
+          </p>
+          <p
+            className="text-sm font-bold"
+            style={{ color: valColor(it.value), fontFamily: 'var(--font-mono)' }}
+          >
+            {fmtVal(it.value, it.pct)}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Single metric row: label | description | value (right aligned) */
+function FundRow({ label, desc, value, pct }: { label: string; desc?: string; value: number | null; pct?: boolean }) {
+  if (value === null || value === undefined) return null;
+  return (
+    <div
+      className="flex items-center justify-between py-2.5"
+      style={{ borderBottom: '1px dashed var(--border-light)' }}
+    >
+      <span className="text-xs" style={{ color: 'var(--text-primary)' }}>
+        {label}
+      </span>
+      {desc && (
+        <span className="text-[10px] flex-1 mx-3 text-right" style={{ color: 'var(--text-muted)' }}>
+          {desc}
+        </span>
+      )}
+      <span
+        className="text-xs font-bold"
+        style={{ color: valColor(value), fontFamily: 'var(--font-mono)' }}
+      >
+        {fmtVal(value, pct)}
+      </span>
+    </div>
+  );
+}
+
+/** Fundamentals content matching Investify's multi-column layout */
+function FundamentalsContent({ fundamentals: f }: { fundamentals: any }) {
+  // Check if any section has data
+  const hasEarnings = f.eps?.annual != null || f.eps?.lastQuarter != null || f.eps?.ytd != null || f.eps?.expected != null;
+  const hasPE = f.pe?.annual != null || f.pe?.expected != null;
+  const hasMargins = f.profitMargins?.gross != null || f.profitMargins?.operating != null || f.profitMargins?.net != null || f.profitMargins?.ebitda != null;
+  const hasReturns = f.returnOn?.roe != null || f.returnOn?.roa != null || f.returnOn?.roce != null;
+  const hasDPS = f.dps?.annual != null || f.dps?.lastQuarter != null || f.dps?.lastInterim != null;
+  const hasValuations = f.bookValue != null || f.pbv != null || f.enterpriseValue != null;
+  const hasHealth = f.currentRatio != null || f.quickRatio != null || f.debtToEquity != null || f.equityToAssets != null;
+
+  const hasAnyData = hasEarnings || hasPE || hasMargins || hasReturns || hasDPS || hasValuations || hasHealth ||
+    f.earningGrowth != null || f.pegRatio != null || f.dividendYield != null;
+
+  if (!hasAnyData) return null;
+
+  return (
+    <div>
+      {/* ---- EARNINGS ---- */}
+      {(hasEarnings || hasPE || f.earningGrowth != null || f.pegRatio != null) && (
+        <div className="mb-6">
+          <SectionHeader title="Earnings" />
+
+          {/* EPS Grid */}
+          {hasEarnings && (
+            <>
+              <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                Earnings Per Share (EPS in Rs.)
+              </p>
+              <MetricGrid items={[
+                { header: 'Annual', value: f.eps?.annual },
+                { header: 'Last Quarter', value: f.eps?.lastQuarter },
+                { header: 'Year-to-Date', value: f.eps?.ytd },
+                { header: 'Expected', value: f.eps?.expected },
+              ]} />
+            </>
+          )}
+
+          {/* P/E Grid */}
+          {hasPE && (
+            <>
+              <p className="text-xs font-semibold mb-1 mt-3" style={{ color: 'var(--text-primary)' }}>
+                Price to Earnings Ratio (P/E)
+              </p>
+              <MetricGrid items={[
+                { header: 'Annual', value: f.pe?.annual },
+                { header: 'Expected', value: f.pe?.expected },
+              ]} />
+            </>
+          )}
+
+          {/* Single rows */}
+          <FundRow label="Exp Earning Growth (%)" value={f.earningGrowth} pct />
+          <FundRow label="PEG Ratio" value={f.pegRatio} />
+          <FundRow label="Forward PEG Ratio" value={f.forwardPeg} />
+        </div>
+      )}
+
+      {/* ---- PERFORMANCE ---- */}
+      {(hasMargins || hasReturns) && (
+        <div className="mb-6">
+          <SectionHeader title="Performance" />
+
+          {/* Profit Margins Grid */}
+          {hasMargins && (
+            <>
+              <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                Profit Margin (%)
+              </p>
+              <MetricGrid items={[
+                { header: 'Gross Profit', value: f.profitMargins?.gross, pct: true },
+                { header: 'Operating Profit', value: f.profitMargins?.operating, pct: true },
+                { header: 'Net Profit', value: f.profitMargins?.net, pct: true },
+                { header: 'EBITDA', value: f.profitMargins?.ebitda, pct: true },
+              ]} />
+            </>
+          )}
+
+          {/* Returns Grid */}
+          {hasReturns && (
+            <>
+              <p className="text-xs font-semibold mb-1 mt-3" style={{ color: 'var(--text-primary)' }}>
+                Return On (%)
+              </p>
+              <MetricGrid items={[
+                { header: 'Equity (ROE)', value: f.returnOn?.roe, pct: true },
+                { header: 'Assets (ROA)', value: f.returnOn?.roa, pct: true },
+                { header: 'Cap Employed (ROCE)', value: f.returnOn?.roce, pct: true },
+              ]} />
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ---- PAYOUTS ---- */}
+      {(hasDPS || f.dividendYield != null || f.payoutRatio != null) && (
+        <div className="mb-6">
+          <SectionHeader title="Payouts" />
+
+          {/* DPS Grid */}
+          {hasDPS && (
+            <>
+              <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                Dividend Per Share (DPS in Rs.)
+              </p>
+              <MetricGrid items={[
+                { header: 'Annual', value: f.dps?.annual },
+                { header: 'Last Quarter', value: f.dps?.lastQuarter },
+                { header: 'Last Interim', value: f.dps?.lastInterim },
+              ]} />
+            </>
+          )}
+
+          <FundRow label="Dividend Yield (%)" value={f.dividendYield} pct />
+          <FundRow label="Dividend Cover" value={f.dividendCover} />
+          <FundRow label="Payout Ratio (%)" value={f.payoutRatio} pct />
+        </div>
+      )}
+
+      {/* ---- VALUATIONS ---- */}
+      {hasValuations && (
+        <div className="mb-6">
+          <SectionHeader title="Valuations" />
+          <FundRow label="Book Value Per Share (Rs.)" value={f.bookValue} />
+          <FundRow label="Price-to-Book Value (PBV)" value={f.pbv} />
+          <FundRow label="Enterprise Value (Rs.)" value={f.enterpriseValue} />
+        </div>
+      )}
+
+      {/* ---- FINANCIAL HEALTH ---- */}
+      {hasHealth && (
+        <div className="mb-6">
+          <SectionHeader title="Financial Health" />
+          <FundRow label="Current Ratio" value={f.currentRatio} />
+          <FundRow label="Quick Ratio" value={f.quickRatio} />
+          <FundRow label="Inventory Turnover (times)" value={f.inventoryTurnover} />
+          <FundRow label="Asset Turnover (times)" value={f.assetTurnover} />
+          <FundRow label="Equity-to-Assets" value={f.equityToAssets} pct />
+          <FundRow label="Debt-to-Equity" value={f.debtToEquity} pct />
+          <FundRow label="Debt-to-Assets" value={f.debtToAssets} pct />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -696,7 +922,6 @@ export default function StockDetailPage({
           {/* Day's Range */}
           <SectionHeader title="Day's Range" />
           <RangeSlider
-            label=""
             low={stockData.low}
             high={stockData.high}
             current={stockData.current_price}
@@ -707,7 +932,6 @@ export default function StockDetailPage({
             <>
               <SectionHeader title="52-Week Range" />
               <RangeSlider
-                label=""
                 low={technicals.weekRange52.low}
                 high={technicals.weekRange52.high}
                 current={stockData.current_price}
@@ -741,42 +965,7 @@ export default function StockDetailPage({
               <SkeletonBlock className="h-4 w-3/4" />
             </div>
           ) : companyData?.fundamentals ? (
-            <div>
-              {/* Render each fundamental section */}
-              {[
-                { key: 'earnings', title: 'Earnings' },
-                { key: 'performance', title: 'Performance' },
-                { key: 'payouts', title: 'Payouts' },
-                { key: 'valuations', title: 'Valuations' },
-                { key: 'financial_health', title: 'Financial Health' },
-              ].map(({ key, title }) => {
-                const data = companyData.fundamentals[key] as Record<string, any> | undefined;
-                if (!data || Object.keys(data).length === 0) return null;
-
-                return (
-                  <div key={key} className="mb-5">
-                    <SectionHeader title={title} />
-                    {Object.entries(data).map(([k, val], i) => {
-                      const label = k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-                      let displayValue: string;
-                      let valueColor: string | undefined;
-
-                      if (typeof val === 'number') {
-                        displayValue = val.toFixed(2);
-                        if (val > 0) valueColor = 'var(--accent-success)';
-                        else if (val < 0) valueColor = 'var(--accent-danger)';
-                      } else if (val === null || val === undefined) {
-                        displayValue = 'N/A';
-                      } else {
-                        displayValue = String(val);
-                      }
-
-                      return <StatRow key={i} label={label} value={displayValue} valueColor={valueColor} />;
-                    })}
-                  </div>
-                );
-              })}
-            </div>
+            <FundamentalsContent fundamentals={companyData.fundamentals} />
           ) : (
             <EmptyTabState
               icon={BarChart3}
@@ -802,36 +991,47 @@ export default function StockDetailPage({
             <div>
               {/* Technical Indicators */}
               {technicals.indicators.length > 0 && (
-                <div className="mb-5">
+                <div className="mb-6">
                   <SectionHeader title="Technical Indicators" />
-                  {technicals.indicators.map((ind, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between py-2.5"
-                      style={{ borderBottom: '1px dashed var(--border-light)' }}
-                    >
-                      <div>
-                        <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
-                          {ind.name}
-                        </span>
-                        <span className="text-[10px] ml-1" style={{ color: 'var(--text-muted)' }}>
-                          ({ind.params})
-                        </span>
+                  {technicals.indicators.map((ind, i) => {
+                    const pillBg = ind.signal === 'BUY' ? '#00B894' : ind.signal === 'SELL' ? '#FF5252' : '#9CA3C4';
+                    return (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between py-3"
+                        style={{ borderBottom: '1px dashed var(--border-light)' }}
+                      >
+                        <div className="flex items-center gap-2 flex-1">
+                          <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                            {ind.name}
+                          </span>
+                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                            ( {ind.params} )
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className="text-xs font-bold px-4 py-1.5 rounded-[6px] text-white min-w-[70px] text-center"
+                            style={{ background: pillBg, fontFamily: 'var(--font-mono)' }}
+                          >
+                            {ind.value.toFixed(2)}
+                          </span>
+                          <span
+                            className="text-[11px] font-bold px-3 py-1.5 rounded-[6px] text-white min-w-[72px] text-center"
+                            style={{ background: pillBg }}
+                          >
+                            {ind.signal}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
-                          {ind.value.toFixed(2)}
-                        </span>
-                        <SignalBadge signal={ind.signal} />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
               {/* Pivot Points */}
               {technicals.pivotPoints.length > 0 && (
-                <div className="mb-5">
+                <div className="mb-6">
                   <SectionHeader title="Pivot Points" />
                   {technicals.pivotPoints.map((pp, i) => {
                     const pillBg =
@@ -842,14 +1042,11 @@ export default function StockDetailPage({
                     return (
                       <div
                         key={i}
-                        className="flex items-center justify-between py-2.5"
+                        className="flex items-center justify-between py-3"
                         style={{ borderBottom: '1px dashed var(--border-light)' }}
                       >
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
-                            style={{ background: pillBg }}
-                          >
+                        <div className="flex items-center gap-3 flex-1">
+                          <span className="text-sm font-bold min-w-[28px]" style={{ color: 'var(--text-primary)' }}>
                             {pp.label}
                           </span>
                           <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
@@ -857,7 +1054,7 @@ export default function StockDetailPage({
                           </span>
                         </div>
                         <span
-                          className="text-xs font-bold px-2.5 py-0.5 rounded-full text-white"
+                          className="text-xs font-bold px-4 py-1.5 rounded-[6px] text-white min-w-[70px] text-center"
                           style={{ background: pillBg, fontFamily: 'var(--font-mono)' }}
                         >
                           {pp.value.toFixed(2)}
@@ -868,34 +1065,43 @@ export default function StockDetailPage({
                 </div>
               )}
 
-              {/* Moving Averages */}
+              {/* Simple Moving Averages */}
               {technicals.movingAverages.length > 0 && (
-                <div className="mb-5">
-                  <SectionHeader title="Moving Averages" />
-                  {technicals.movingAverages.map((ma, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between py-2.5"
-                      style={{ borderBottom: '1px dashed var(--border-light)' }}
-                    >
-                      <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        {ma.label}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="text-xs font-bold px-2 py-0.5 rounded-full"
-                          style={{
-                            background: 'var(--bg-secondary)',
-                            color: 'var(--text-primary)',
-                            fontFamily: 'var(--font-mono)',
-                          }}
-                        >
-                          {ma.value.toFixed(2)}
-                        </span>
-                        <SignalBadge signal={ma.signal} />
+                <div className="mb-6">
+                  <SectionHeader title="Simple Moving Averages" />
+                  {technicals.movingAverages.map((ma, i) => {
+                    const pillBg = ma.signal === 'BUY' ? '#00B894' : ma.signal === 'SELL' ? '#FF5252' : '#9CA3C4';
+                    return (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between py-3"
+                        style={{ borderBottom: '1px dashed var(--border-light)' }}
+                      >
+                        <div className="flex items-center gap-2 flex-1">
+                          <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                            {ma.label.split(' ')[0]}
+                          </span>
+                          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            {ma.label.split(' ').slice(1).join(' ') || `${ma.label} Average`}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className="text-xs font-bold px-4 py-1.5 rounded-[6px] text-white min-w-[70px] text-center"
+                            style={{ background: pillBg, fontFamily: 'var(--font-mono)' }}
+                          >
+                            {ma.value.toFixed(2)}
+                          </span>
+                          <span
+                            className="text-[11px] font-bold px-3 py-1.5 rounded-[6px] text-white min-w-[72px] text-center"
+                            style={{ background: pillBg }}
+                          >
+                            {ma.signal}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -909,54 +1115,92 @@ export default function StockDetailPage({
       {activeTab === 'announcements' && (
         <div className="animate-[fade-in_0.3s_ease-out]">
           {companyLoading ? (
-            <div className="space-y-2">
-              <SkeletonBlock className="h-4 w-full" />
-              <SkeletonBlock className="h-4 w-full" />
-              <SkeletonBlock className="h-4 w-3/4" />
+            <div className="space-y-3">
+              <SkeletonBlock className="h-5 w-full" />
+              <SkeletonBlock className="h-12 w-full" />
+              <SkeletonBlock className="h-12 w-full" />
+              <SkeletonBlock className="h-12 w-full" />
             </div>
           ) : companyData?.announcements && companyData.announcements.length > 0 ? (
             <div>
-              <SectionHeader title="Announcements" />
-              {/* Flat list */}
+              {/* Header bar */}
+              <div
+                className="flex items-center justify-between px-4 py-2.5 rounded-t-[8px] mb-0"
+                style={{ background: 'var(--accent-primary)' }}
+              >
+                <span className="text-xs font-bold text-white uppercase tracking-wide">
+                  All Announcements
+                </span>
+              </div>
+
+              {/* Announcement list */}
               {companyData.announcements.map((ann: any, i: number) => (
                 <div
                   key={i}
-                  className="py-3"
+                  className="flex items-start gap-3 py-3 px-1"
                   style={{ borderBottom: '1px solid var(--border-light)' }}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold leading-relaxed mb-1" style={{ color: 'var(--text-primary)' }}>
-                        {ann.title || ann.description || 'Announcement'}
-                      </p>
+                  {/* Date + Time */}
+                  <div className="flex-shrink-0 w-[80px]">
+                    <p className="text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      {ann.date || 'N/A'}
+                    </p>
+                    {ann.time && (
                       <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                        {ann.date || 'N/A'} {ann.time ? `at ${ann.time}` : ''}
+                        {ann.time}
                       </p>
-                    </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      {ann.url && (
-                        <a
-                          href={ann.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 px-2 py-1 rounded-[6px] text-[10px] font-bold transition-opacity hover:opacity-80"
-                          style={{ background: 'var(--accent-primary)', color: '#fff' }}
-                        >
-                          <Eye size={11} /> VIEW
-                        </a>
-                      )}
-                      {ann.pdf_url && (
-                        <a
-                          href={ann.pdf_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 px-2 py-1 rounded-[6px] text-[10px] font-bold transition-opacity hover:opacity-80"
-                          style={{ background: 'var(--accent-danger)', color: '#fff' }}
-                        >
-                          <FileText size={11} /> PDF
-                        </a>
-                      )}
-                    </div>
+                    )}
+                  </div>
+
+                  {/* Title */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold leading-relaxed" style={{ color: 'var(--accent-primary)' }}>
+                      {ann.title || ann.description || 'Announcement'}
+                    </p>
+                  </div>
+
+                  {/* Action icons */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {(ann.viewUrl || ann.url) && (
+                      <a
+                        href={ann.viewUrl || ann.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col items-center gap-0.5 transition-opacity hover:opacity-70"
+                        title="View"
+                      >
+                        <Eye size={18} style={{ color: '#3B82F6' }} />
+                        <span className="text-[8px] font-bold" style={{ color: '#3B82F6' }}>VIEW</span>
+                      </a>
+                    )}
+                    {(ann.pdfUrl || ann.pdf_url) && (
+                      <a
+                        href={ann.pdfUrl || ann.pdf_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col items-center gap-0.5 transition-opacity hover:opacity-70"
+                        title="Download PDF"
+                      >
+                        <FileText size={18} style={{ color: '#EF4444' }} />
+                        <span className="text-[8px] font-bold" style={{ color: '#EF4444' }}>PDF</span>
+                      </a>
+                    )}
+                    <button
+                      onClick={() => {
+                        const url = ann.viewUrl || ann.pdfUrl || ann.url || ann.pdf_url;
+                        if (url) {
+                          if (navigator.share) {
+                            navigator.share({ title: ann.title, url });
+                          } else {
+                            navigator.clipboard.writeText(url);
+                          }
+                        }
+                      }}
+                      className="flex flex-col items-center gap-0.5 transition-opacity hover:opacity-70"
+                      title="Share"
+                    >
+                      <Share2 size={16} style={{ color: 'var(--text-muted)' }} />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -977,120 +1221,159 @@ export default function StockDetailPage({
       {activeTab === 'profile' && (
         <div className="animate-[fade-in_0.3s_ease-out]">
           {companyLoading ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
+              <SkeletonBlock className="h-16 w-full" />
               <SkeletonBlock className="h-4 w-full" />
               <SkeletonBlock className="h-4 w-3/4" />
             </div>
-          ) : companyData?.profile ? (
-            <div>
-              {/* Company Background */}
-              {companyData.profile.background && (
-                <div className="mb-5">
-                  <SectionHeader title="About" />
-                  <p
-                    className="text-xs leading-relaxed"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    {profileExpanded
-                      ? companyData.profile.background
-                      : companyData.profile.background.slice(0, 200) +
-                        (companyData.profile.background.length > 200 ? '...' : '')}
-                  </p>
-                  {companyData.profile.background.length > 200 && (
-                    <button
-                      onClick={() => setProfileExpanded(!profileExpanded)}
-                      className="flex items-center gap-1 text-[11px] font-bold mt-2 transition-colors"
-                      style={{ color: 'var(--accent-primary)' }}
-                    >
-                      {profileExpanded ? 'Show less' : 'Read more'}
-                      {profileExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Equity */}
-              {companyData.profile.equity && (
-                <div className="mb-5">
-                  <SectionHeader title="Equity Profile" />
-                  {companyData.profile.equity.market_cap != null && (
-                    <StatRow label="Market Cap" value={formatLargeNumber(companyData.profile.equity.market_cap)} />
-                  )}
-                  {companyData.profile.equity.total_shares != null && (
-                    <StatRow label="Total Shares" value={formatLargeNumber(companyData.profile.equity.total_shares)} />
-                  )}
-                  {companyData.profile.equity.free_float != null && (
-                    <StatRow label="Free Float" value={formatLargeNumber(companyData.profile.equity.free_float)} />
-                  )}
-                  {companyData.profile.equity.free_float_pct != null && (
-                    <StatRow label="Free Float %" value={`${companyData.profile.equity.free_float_pct.toFixed(2)}%`} />
-                  )}
-                </div>
-              )}
-
-              {/* Executives */}
-              {companyData.profile.executives && (
-                <div className="mb-5">
-                  <SectionHeader title="Executives" />
-                  {companyData.profile.executives.chairperson && (
-                    <StatRow label="Chairperson" value={companyData.profile.executives.chairperson} />
-                  )}
-                  {companyData.profile.executives.ceo && (
-                    <StatRow label="CEO" value={companyData.profile.executives.ceo} />
-                  )}
-                  {companyData.profile.executives.secretary && (
-                    <StatRow label="Secretary" value={companyData.profile.executives.secretary} />
-                  )}
-                </div>
-              )}
-
-              {/* Contact */}
-              {companyData.profile.contact && (
-                <div className="mb-5">
-                  <SectionHeader title="Contact" />
-                  {companyData.profile.contact.address && (
-                    <div
-                      className="flex items-start gap-2 py-2.5"
-                      style={{ borderBottom: '1px dashed var(--border-light)' }}
-                    >
-                      <MapPin size={14} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--text-muted)' }} />
-                      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                        {companyData.profile.contact.address}
+          ) : companyData?.profile ? (() => {
+            const p = companyData.profile;
+            const desc = p.description || p.background || '';
+            return (
+              <div>
+                {/* Company header card */}
+                <div className="flex items-start gap-4 mb-5 pb-4" style={{ borderBottom: '1px solid var(--border-light)' }}>
+                  <StockLogo symbol={stockData.symbol} size={56} />
+                  <div className="flex-1">
+                    <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                      <span className="text-[10px] font-bold uppercase" style={{ color: 'var(--text-muted)' }}>Symbol</span>
+                      <span className="text-xs font-bold" style={{ color: 'var(--accent-primary)' }}>{stockData.symbol}</span>
+                      <span className="text-[10px] font-bold uppercase" style={{ color: 'var(--text-muted)' }}>Name</span>
+                      <span className="text-xs font-semibold" style={{ color: 'var(--accent-primary)' }}>{stockData.name}</span>
+                      <span className="text-[10px] font-bold uppercase" style={{ color: 'var(--text-muted)' }}>Sector</span>
+                      <span className="text-xs font-semibold" style={{ color: 'var(--accent-primary)' }}>
+                        {sectorInfo ? `${sectorInfo.emoji} ${sectorInfo.name}` : stockData.sector}
                       </span>
                     </div>
-                  )}
-                  {companyData.profile.contact.website && (
-                    <div
-                      className="flex items-center justify-between py-2.5"
-                      style={{ borderBottom: '1px dashed var(--border-light)' }}
+                  </div>
+                </div>
+
+                {/* Company Background */}
+                {desc && (
+                  <div className="mb-6">
+                    <SectionHeader title="Company Background" />
+                    <p
+                      className="text-xs leading-relaxed"
+                      style={{ color: 'var(--text-secondary)' }}
                     >
-                      <div className="flex items-center gap-2">
-                        <Globe size={14} style={{ color: 'var(--text-muted)' }} />
+                      {profileExpanded
+                        ? desc
+                        : desc.slice(0, 200) + (desc.length > 200 ? ' ...' : '')}
+                      {desc.length > 200 && !profileExpanded && (
+                        <button
+                          onClick={() => setProfileExpanded(true)}
+                          className="inline text-[11px] font-bold ml-1 transition-colors"
+                          style={{ color: 'var(--accent-primary)' }}
+                        >
+                          more
+                        </button>
+                      )}
+                    </p>
+                    {desc.length > 200 && profileExpanded && (
+                      <button
+                        onClick={() => setProfileExpanded(false)}
+                        className="flex items-center gap-1 text-[11px] font-bold mt-2 transition-colors"
+                        style={{ color: 'var(--accent-primary)' }}
+                      >
+                        Show less <ChevronUp size={12} />
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Equity Profile */}
+                {(p.marketCap != null || p.totalShares != null || p.freeFloat != null || p.freeFloatPct != null) && (
+                  <div className="mb-6">
+                    <SectionHeader title="Equity Profile" />
+                    {p.marketCap != null && (
+                      <StatRow label="Market Cap (Rs.)" value={Number(p.marketCap).toLocaleString('en-PK')} valueColor="var(--accent-primary)" />
+                    )}
+                    {p.totalShares != null && (
+                      <StatRow label="Total Shares" value={Number(p.totalShares).toLocaleString('en-PK')} valueColor="var(--accent-primary)" />
+                    )}
+                    {p.freeFloat != null && (
+                      <StatRow label="Free Float" value={Number(p.freeFloat).toLocaleString('en-PK')} valueColor="var(--accent-primary)" />
+                    )}
+                    {p.freeFloatPct != null && (
+                      <StatRow label="Free Float (%)" value={`${Number(p.freeFloatPct).toFixed(0)}%`} valueColor="var(--accent-primary)" />
+                    )}
+                  </div>
+                )}
+
+                {/* Top Executives */}
+                {(p.chairperson || p.ceo || p.secretary) && (
+                  <div className="mb-6">
+                    <SectionHeader title="Top Executives" />
+                    {p.chairperson && <StatRow label="Chairperson" value={p.chairperson} />}
+                    {p.ceo && <StatRow label="CEO" value={p.ceo} />}
+                    {p.secretary && <StatRow label="Company Secretary" value={p.secretary} />}
+                  </div>
+                )}
+
+                {/* Contact Information */}
+                {(p.address || p.website || p.registrar || p.auditor) && (
+                  <div className="mb-6">
+                    <SectionHeader title="Contact Information" />
+                    {p.address && (
+                      <div
+                        className="flex items-start gap-3 py-2.5"
+                        style={{ borderBottom: '1px dashed var(--border-light)' }}
+                      >
+                        <span className="text-xs font-bold flex-shrink-0 min-w-[60px]" style={{ color: 'var(--text-primary)' }}>Address</span>
                         <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                          {companyData.profile.contact.website}
+                          {p.address}
                         </span>
                       </div>
-                      <a
-                        href={companyData.profile.contact.website.startsWith('http') ? companyData.profile.contact.website : `https://${companyData.profile.contact.website}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-[6px] text-[10px] font-bold transition-opacity hover:opacity-80"
-                        style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                    )}
+                    {p.website && (
+                      <div
+                        className="flex items-center justify-between py-2.5"
+                        style={{ borderBottom: '1px dashed var(--border-light)' }}
                       >
-                        VISIT <ExternalLink size={10} />
-                      </a>
-                    </div>
-                  )}
-                  {companyData.profile.contact.registrar && (
-                    <StatRow label="Registrar" value={companyData.profile.contact.registrar} />
-                  )}
-                  {companyData.profile.contact.auditor && (
-                    <StatRow label="Auditor" value={companyData.profile.contact.auditor} />
-                  )}
-                </div>
-              )}
-            </div>
-          ) : (
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-bold flex-shrink-0" style={{ color: 'var(--text-primary)' }}>Website</span>
+                          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            {p.website}
+                          </span>
+                        </div>
+                        <a
+                          href={p.website.startsWith('http') ? p.website : `https://${p.website}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-[11px] font-bold transition-opacity hover:opacity-80 flex-shrink-0"
+                          style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                        >
+                          VISIT WEBSITE
+                        </a>
+                      </div>
+                    )}
+                    {p.registrar && (
+                      <div
+                        className="flex items-start gap-3 py-2.5"
+                        style={{ borderBottom: '1px dashed var(--border-light)' }}
+                      >
+                        <span className="text-xs font-bold flex-shrink-0 min-w-[60px]" style={{ color: 'var(--text-primary)' }}>Registrar</span>
+                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                          {p.registrar}
+                        </span>
+                      </div>
+                    )}
+                    {p.auditor && (
+                      <div
+                        className="flex items-start gap-3 py-2.5"
+                        style={{ borderBottom: '1px dashed var(--border-light)' }}
+                      >
+                        <span className="text-xs font-bold flex-shrink-0 min-w-[60px]" style={{ color: 'var(--text-primary)' }}>Auditor</span>
+                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                          {p.auditor}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })() : (
             <EmptyTabState
               icon={Building2}
               title="Profile Unavailable"
