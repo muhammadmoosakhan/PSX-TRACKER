@@ -3,6 +3,7 @@
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import type { PortfolioHolding } from '@/types';
 import { formatPKR, formatPercent, plColor } from '@/lib/formatters';
+import { getSectorDisplay } from '@/lib/constants';
 import Card from '@/components/ui/Card';
 
 interface HoldingsTableProps {
@@ -47,7 +48,7 @@ export default function HoldingsTable({ holdings, onSelectStock }: Readonly<Hold
                     <span className="font-semibold" style={{ color: 'var(--accent-primary)' }}>{h.symbol}</span>
                     <p className="text-xs truncate max-w-[120px]" style={{ color: 'var(--text-muted)' }}>{h.stock_name}</p>
                   </td>
-                  <td className="px-3 py-3 text-xs" style={{ color: 'var(--text-secondary)' }}>{h.sector}</td>
+                  <td className="px-3 py-3 text-xs" style={{ color: 'var(--text-secondary)' }}>{getSectorDisplay(h.sector).name}</td>
                   <td className="px-3 py-3 font-mono-numbers" style={{ color: 'var(--text-primary)' }}>{h.quantity_held.toLocaleString()}</td>
                   <td className="px-3 py-3 font-mono-numbers" style={{ color: 'var(--text-primary)' }}>{formatPKR(h.avg_buy_price, 2)}</td>
                   <td className="px-3 py-3">
@@ -99,7 +100,7 @@ export default function HoldingsTable({ holdings, onSelectStock }: Readonly<Hold
             <div className="flex justify-between items-start mb-2">
               <div>
                 <span className="font-semibold" style={{ color: 'var(--accent-primary)' }}>{h.symbol}</span>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{h.sector}</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{getSectorDisplay(h.sector).name}</p>
               </div>
               <div className="text-right">
                 <p className="font-mono-numbers font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{formatPKR(h.market_value, 0)}</p>

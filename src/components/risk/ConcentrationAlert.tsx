@@ -2,6 +2,7 @@
 
 import { AlertTriangle, CheckCircle } from 'lucide-react';
 import type { RiskMetric, PortfolioHolding, SectorAllocation } from '@/types';
+import { getSectorDisplay } from '@/lib/constants';
 import Card from '@/components/ui/Card';
 
 interface ConcentrationAlertProps {
@@ -40,7 +41,7 @@ export default function ConcentrationAlert({
   for (const s of sectorAllocation) {
     if (s.weight_pct > 0.40) {
       alerts.push({
-        message: `${s.sector} sector is ${(s.weight_pct * 100).toFixed(1)}% of your portfolio.`,
+        message: `${getSectorDisplay(s.sector).name} sector is ${(s.weight_pct * 100).toFixed(1)}% of your portfolio.`,
         severity: 'danger',
       });
     }

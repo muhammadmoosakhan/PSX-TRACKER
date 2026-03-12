@@ -23,6 +23,7 @@ import { useMarketData } from '@/hooks/useMarketData';
 import { usePortfolio } from '@/hooks/usePortfolio';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { formatPKRCompact } from '@/lib/formatters';
+import { getSectorDisplay } from '@/lib/constants';
 
 export default function DashboardPage() {
   const { trades, loading: tradesLoading } = useTrades();
@@ -70,7 +71,7 @@ export default function DashboardPage() {
 
   // Sector data for pie chart
   const sectorPieData = sectorAllocation.map((s) => ({
-    name: s.sector,
+    name: getSectorDisplay(s.sector).name,
     value: s.current_value,
   }));
 

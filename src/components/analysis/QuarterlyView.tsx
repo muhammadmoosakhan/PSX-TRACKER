@@ -2,6 +2,7 @@
 
 import type { QuarterlyAnalysis } from '@/types';
 import { formatPKR, formatPercent, plColor } from '@/lib/formatters';
+import { getSectorDisplay } from '@/lib/constants';
 import Card from '@/components/ui/Card';
 import BarChartComponent from '@/components/charts/BarChart';
 
@@ -32,8 +33,8 @@ export default function QuarterlyView({ data }: Readonly<{ data: QuarterlyAnalys
                 <td className="px-4 py-3 font-mono-numbers" style={{ color: 'var(--text-primary)' }}>{formatPKR(q.net_investment, 0)}</td>
                 <td className={`px-4 py-3 font-mono-numbers font-semibold ${plColor(q.realized_pl)}`}>{formatPKR(q.realized_pl, 0)}</td>
                 <td className={`px-4 py-3 font-mono-numbers ${plColor(q.qoq_growth_pct)}`}>{formatPercent(q.qoq_growth_pct)}</td>
-                <td className="px-4 py-3 text-xs" style={{ color: 'var(--accent-success)' }}>{q.best_sector}</td>
-                <td className="px-4 py-3 text-xs" style={{ color: 'var(--accent-danger)' }}>{q.worst_sector}</td>
+                <td className="px-4 py-3 text-xs" style={{ color: 'var(--accent-success)' }}>{getSectorDisplay(q.best_sector).name}</td>
+                <td className="px-4 py-3 text-xs" style={{ color: 'var(--accent-danger)' }}>{getSectorDisplay(q.worst_sector).name}</td>
               </tr>
             ))}
           </tbody>

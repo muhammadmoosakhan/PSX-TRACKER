@@ -28,6 +28,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { getSectorDisplay } from '@/lib/constants';
+import { getCompanyName } from '@/lib/psx-companies';
 import { getStockLogoUrl } from '@/lib/stock-logos';
 import { getAllTechnicals } from '@/lib/technicals';
 import type { StockCache, StockHistoryPoint } from '@/types';
@@ -741,7 +742,7 @@ export default function StockDetailPage({
         <button
           onClick={() => {
             if (navigator.share) {
-              navigator.share({ title: `${stockData.name} (${stockData.symbol})`, url: window.location.href });
+              navigator.share({ title: `${getCompanyName(stockData.symbol, stockData.name)} (${stockData.symbol})`, url: window.location.href });
             } else {
               navigator.clipboard.writeText(window.location.href);
             }
@@ -763,7 +764,7 @@ export default function StockDetailPage({
               className="text-base font-bold truncate"
               style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}
             >
-              {stockData.name}
+              {getCompanyName(stockData.symbol, stockData.name !== stockData.symbol ? stockData.name : undefined)}
             </h1>
             <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
               {stockData.symbol}
@@ -1239,7 +1240,7 @@ export default function StockDetailPage({
                       <span className="text-[10px] font-bold uppercase" style={{ color: 'var(--text-muted)' }}>Symbol</span>
                       <span className="text-xs font-bold" style={{ color: 'var(--accent-primary)' }}>{stockData.symbol}</span>
                       <span className="text-[10px] font-bold uppercase" style={{ color: 'var(--text-muted)' }}>Name</span>
-                      <span className="text-xs font-semibold" style={{ color: 'var(--accent-primary)' }}>{stockData.name}</span>
+                      <span className="text-xs font-semibold" style={{ color: 'var(--accent-primary)' }}>{getCompanyName(stockData.symbol, stockData.name !== stockData.symbol ? stockData.name : undefined)}</span>
                       <span className="text-[10px] font-bold uppercase" style={{ color: 'var(--text-muted)' }}>Sector</span>
                       <span className="text-xs font-semibold" style={{ color: 'var(--accent-primary)' }}>
                         {sectorInfo ? `${sectorInfo.emoji} ${sectorInfo.name}` : stockData.sector}
@@ -1422,7 +1423,7 @@ export default function StockDetailPage({
                         {comp.symbol}
                       </p>
                       <p className="text-[10px] truncate" style={{ color: 'var(--text-secondary)' }}>
-                        {comp.name}
+                        {getCompanyName(comp.symbol, comp.name !== comp.symbol ? comp.name : undefined)}
                       </p>
                     </div>
                     <div className="text-right flex-shrink-0">

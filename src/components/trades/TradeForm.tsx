@@ -5,6 +5,7 @@ import { Plus, ChevronUp, ChevronDown } from 'lucide-react';
 import type { Trade, TradeInput, StockCache } from '@/types';
 import { calculateTradeCosts } from '@/lib/calculations';
 import { formatPKR } from '@/lib/formatters';
+import { getSectorDisplay } from '@/lib/constants';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import StockSearch from './StockSearch';
@@ -169,7 +170,7 @@ export default function TradeForm({
               </div>
               <div className="space-y-1">
                 <label className="text-xs" style={{ color: 'var(--text-muted)' }}>Sector</label>
-                <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{sector || '—'}</p>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{sector ? getSectorDisplay(sector).name : '—'}</p>
               </div>
             </div>
           )}

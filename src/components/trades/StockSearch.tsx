@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Search } from 'lucide-react';
 import type { StockCache } from '@/types';
 import { formatPKR } from '@/lib/formatters';
+import { getSectorDisplay } from '@/lib/constants';
 
 interface StockSearchProps {
   stocks: StockCache[];
@@ -143,7 +144,7 @@ export default function StockSearch({ stocks, onSelect, value = '' }: Readonly<S
                     className="text-xs px-1.5 py-0.5 rounded-full"
                     style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}
                   >
-                    {stock.sector}
+                    {getSectorDisplay(stock.sector).name}
                   </span>
                 </div>
                 <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>

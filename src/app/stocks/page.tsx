@@ -19,6 +19,7 @@ import { SkeletonTable } from '@/components/ui/Skeleton';
 import { useMarketData } from '@/hooks/useMarketData';
 import { getStockLogoUrl } from '@/lib/stock-logos';
 import { getSectorDisplay } from '@/lib/constants';
+import { getCompanyName } from '@/lib/psx-companies';
 import type { StockCache } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -229,7 +230,7 @@ function StockRow({ stock }: { stock: StockCache }) {
           className="text-xs truncate mt-0.5"
           style={{ color: 'var(--text-secondary)' }}
         >
-          {stock.name !== stock.symbol ? stock.name : stock.symbol}
+          {getCompanyName(stock.symbol, stock.name !== stock.symbol ? stock.name : undefined)}
         </p>
       </div>
 
@@ -334,7 +335,7 @@ function StockCard({ stock }: { stock: StockCache }) {
             className="text-xs truncate mt-0.5"
             style={{ color: 'var(--text-secondary)' }}
           >
-            {stock.name}
+            {getCompanyName(stock.symbol, stock.name !== stock.symbol ? stock.name : undefined)}
           </p>
           <div className="flex items-center justify-between mt-2">
             <span

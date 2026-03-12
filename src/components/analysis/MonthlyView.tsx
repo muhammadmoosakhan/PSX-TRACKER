@@ -2,6 +2,7 @@
 
 import type { MonthlyAnalysis } from '@/types';
 import { formatPKR, plColor } from '@/lib/formatters';
+import { getSectorDisplay } from '@/lib/constants';
 import Card from '@/components/ui/Card';
 import LineChartComponent from '@/components/charts/LineChart';
 import BarChartComponent from '@/components/charts/BarChart';
@@ -35,7 +36,7 @@ export default function MonthlyView({ data }: Readonly<{ data: MonthlyAnalysis[]
                 <td className="px-4 py-3 font-mono-numbers" style={{ color: 'var(--text-primary)' }}>{formatPKR(m.net_investment, 0)}</td>
                 <td className={`px-4 py-3 font-mono-numbers font-semibold ${plColor(m.realized_pl)}`}>{formatPKR(m.realized_pl, 0)}</td>
                 <td className="px-4 py-3 font-mono-numbers" style={{ color: 'var(--text-secondary)' }}>{m.trade_count}</td>
-                <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-secondary)' }}>{m.most_active_sector}</td>
+                <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-secondary)' }}>{getSectorDisplay(m.most_active_sector).name}</td>
               </tr>
             ))}
           </tbody>

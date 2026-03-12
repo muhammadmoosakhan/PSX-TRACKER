@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Pencil, Trash2, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
 import type { Trade } from '@/types';
 import { formatPKR, formatDate } from '@/lib/formatters';
+import { getSectorDisplay } from '@/lib/constants';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
@@ -98,7 +99,7 @@ export default function TradeTable({ trades, onEdit, onDelete }: Readonly<TradeT
             }}
           >
             <option value="">All Sectors</option>
-            {sectors.map((s) => <option key={s} value={s}>{s}</option>)}
+            {sectors.map((s) => <option key={s} value={s}>{getSectorDisplay(s).name}</option>)}
           </select>
         )}
         <span className="text-xs self-center ml-auto" style={{ color: 'var(--text-muted)' }}>
@@ -148,7 +149,7 @@ export default function TradeTable({ trades, onEdit, onDelete }: Readonly<TradeT
                 >
                   <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>{formatDate(trade.trade_date)}</td>
                   <td className="px-4 py-3 font-semibold" style={{ color: 'var(--accent-primary)' }}>{trade.symbol}</td>
-                  <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>{trade.sector}</td>
+                  <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>{getSectorDisplay(trade.sector).name}</td>
                   <td className="px-4 py-3">
                     <Badge variant={trade.trade_type === 'BUY' ? 'buy' : 'sell'}>
                       {trade.trade_type}
