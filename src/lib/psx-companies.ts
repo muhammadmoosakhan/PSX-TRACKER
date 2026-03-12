@@ -236,6 +236,7 @@ export const PSX_COMPANY_NAMES: Record<string, string> = {
 
   // ── M ──────────────────────────────────────────────────────
   MACT: 'Macter International Limited',
+  MACTER: 'Macter International Limited',
   MARI: 'Mari Petroleum Company Limited',
   MCB: 'MCB Bank Limited',
   MEBL: 'Meezan Bank Limited',

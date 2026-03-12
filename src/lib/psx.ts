@@ -60,17 +60,17 @@ function normalizeStock(raw: Record<string, unknown>): StockCache {
     current_price: toNum(raw.CURRENT || raw.current || raw.current_price || raw.CLOSE || raw.close),
     change: toNum(raw.CHANGE || raw.change),
     change_pct: toNum(raw.CHANGE_PER || raw.change_pct || raw['CHANGE%'] || raw.changePer),
-    volume: toNum(raw.VOLUME || raw.volume),
+    volume: toNum(raw.VOLUME || raw.volume || raw.TURNOVER || raw.turnover || raw.VOL || raw.vol || raw.TRADED_VOLUME || raw.traded_volume),
     updated_at: new Date().toISOString(),
   };
 }
 
 /**
  * Parse HTML table from PSX market watch page
+ * PSX table has 11 columns: Symbol, Sector, Listed In, LDCP, Open, High, Low, Current, Change, Change%, Volume
  */
 function parseHTMLMarketData(html: string): StockCache[] {
   const stocks: StockCache[] = [];
-  // Match table rows — PSX uses a simple HTML table
   const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   const cellRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
 
@@ -83,23 +83,30 @@ function parseHTMLMarketData(html: string): StockCache[] {
       cells.push(stripHTML(cellMatch[1]).trim());
     }
 
-    // PSX table typically has: Symbol, Sector, LDCP, Open, High, Low, Current, Change, Change%, Volume
-    if (cells.length >= 8 && cells[0] && !cells[0].includes('Symbol') && !cells[0].includes('SYMBOL')) {
-      stocks.push({
-        symbol: cells[0],
-        name: cells[0], // PSX market-watch may not include full name
-        sector: cells[1] || 'Other',
-        ldcp: toNum(cells[2]),
-        open_price: toNum(cells[3]),
-        high: toNum(cells[4]),
-        low: toNum(cells[5]),
-        current_price: toNum(cells[6]),
-        change: toNum(cells[7]),
-        change_pct: toNum(cells[8]),
-        volume: toNum(cells[9]),
-        updated_at: new Date().toISOString(),
-      });
+    // Skip header rows and empty rows
+    if (cells.length < 8 || !cells[0] || cells[0].includes('Symbol') || cells[0].includes('SYMBOL')) {
+      continue;
     }
+
+    // PSX has 11 columns: Symbol(0), Sector(1), ListedIn(2), LDCP(3), Open(4), High(5), Low(6), Current(7), Change(8), Change%(9), Volume(10)
+    // Handle both 11-column (with "Listed In") and 10-column (without) formats
+    const hasListedIn = cells.length >= 11;
+    const offset = hasListedIn ? 1 : 0; // shift indices if "Listed In" column exists
+
+    stocks.push({
+      symbol: cells[0],
+      name: cells[0],
+      sector: cells[1] || 'Other',
+      ldcp: toNum(cells[2 + offset]),
+      open_price: toNum(cells[3 + offset]),
+      high: toNum(cells[4 + offset]),
+      low: toNum(cells[5 + offset]),
+      current_price: toNum(cells[6 + offset]),
+      change: toNum(cells[7 + offset]),
+      change_pct: toNum(cells[8 + offset]),
+      volume: toNum(cells[9 + offset]),
+      updated_at: new Date().toISOString(),
+    });
   }
 
   return stocks;
