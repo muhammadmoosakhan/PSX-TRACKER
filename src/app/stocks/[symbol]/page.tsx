@@ -343,7 +343,7 @@ function FundamentalsContent({ fundamentals: f }: { fundamentals: any }) {
   const hasMargins = f.profitMargins?.gross != null || f.profitMargins?.operating != null || f.profitMargins?.net != null || f.profitMargins?.ebitda != null;
   const hasReturns = f.returnOn?.roe != null || f.returnOn?.roa != null || f.returnOn?.roce != null;
   const hasDPS = f.dps?.annual != null || f.dps?.lastQuarter != null || f.dps?.lastInterim != null;
-  const hasValuations = f.bookValue != null || f.pbv != null || f.enterpriseValue != null;
+  const hasValuations = f.marketCap != null || f.bookValue != null || f.pbv != null || f.enterpriseValue != null;
   const hasHealth = f.currentRatio != null || f.quickRatio != null || f.debtToEquity != null || f.equityToAssets != null;
 
   const hasAnyData = hasEarnings || hasPE || hasMargins || hasReturns || hasDPS || hasValuations || hasHealth ||
@@ -458,6 +458,7 @@ function FundamentalsContent({ fundamentals: f }: { fundamentals: any }) {
       {hasValuations && (
         <div className="mb-6">
           <SectionHeader title="Valuations" />
+          <FundRow label="Market Cap (Rs.)" value={f.marketCap} />
           <FundRow label="Book Value Per Share (Rs.)" value={f.bookValue} />
           <FundRow label="Price-to-Book Value (PBV)" value={f.pbv} />
           <FundRow label="Enterprise Value (Rs.)" value={f.enterpriseValue} />
@@ -1326,7 +1327,7 @@ export default function StockDetailPage({
                         </span>
                       </div>
                     )}
-                    {p.website && (
+                    {p.website && /^(https?:\/\/|www\.)/i.test(p.website) && (
                       <div
                         className="flex items-center justify-between py-2.5"
                         style={{ borderBottom: '1px dashed var(--border-light)' }}

@@ -81,6 +81,84 @@ function extractPctValue(html: string, label: string): number | null {
   return toNum(cleaned);
 }
 
+/** Extract value from PSX stats_label/stats_value pattern:
+ *  <div class="stats_label">LABEL</div><div class="stats_value">VALUE</div> */
+function extractStatsValue(html: string, label: string): string | null {
+  const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(
+    `stats_label[^>]*>[\\s\\S]*?${escapedLabel}[\\s\\S]*?<\\/div>\\s*<div[^>]*class=["']stats_value["'][^>]*>([\\s\\S]*?)<\\/div>`,
+    'i'
+  );
+  const match = regex.exec(html);
+  if (match && match[1]) {
+    const text = stripHTML(match[1]).trim();
+    if (text && text !== '-' && text !== 'N/A') return text;
+  }
+  return null;
+}
+
+/** Extract a person's name from PSX KEY PEOPLE table by role.
+ *  PSX uses: <tr><td><strong>Name</strong></td><td>Role</td></tr> */
+function extractKeyPerson(html: string, role: string): string | null {
+  const escapedRole = role.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // Use negative lookahead to prevent crossing </td> boundaries
+  const regex = new RegExp(
+    `<tr[^>]*>\\s*<td[^>]*>((?:(?!<\\/td>)[\\s\\S])*)<\\/td>\\s*<td[^>]*>[^<]*${escapedRole}[^<]*<\\/td>`,
+    'i'
+  );
+  const match = regex.exec(html);
+  if (match && match[1]) {
+    const name = stripHTML(match[1]).trim();
+    if (name && name.length > 1) return name;
+  }
+  return null;
+}
+
+/** Extract value from PSX item__head pattern: <div class="item__head">LABEL</div><p>VALUE</p> */
+function extractItemHeadValue(html: string, label: string): string | null {
+  const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(
+    `item__head[^>]*>\\s*${escapedLabel}\\s*<\\/div>\\s*<p[^>]*>([\\s\\S]*?)<\\/p>`,
+    'i'
+  );
+  const match = regex.exec(html);
+  if (match && match[1]) {
+    const text = stripHTML(match[1]).trim();
+    if (text && text !== '-' && text !== 'N/A') return text;
+  }
+  return null;
+}
+
+/** Extract the first numeric value from a multi-year table row.
+ *  PSX company pages use rows like: <td>EPS</td><td>12.5</td><td>10.3</td><td>8.1</td>
+ *  This finds the row by its first-cell label and returns the value from the
+ *  second cell (most recent year).
+ *  NOTE: `label` is treated as a raw regex pattern (not escaped) so callers
+ *  can use lookaheads, e.g. 'EPS(?!\\s*Growth)'. */
+function extractRowFirstValue(html: string, label: string): number | null {
+  // Label is used as-is — callers may pass regex patterns like negative lookaheads
+  // Match a <tr> whose first <td> contains the label
+  const rowRegex = new RegExp(
+    `<tr[^>]*>[\\s\\S]*?<td[^>]*>[^<]*${label}[^<]*</td>([\\s\\S]*?)</tr>`,
+    'i'
+  );
+  const rowMatch = rowRegex.exec(html);
+  if (!rowMatch) return null;
+
+  // Extract all subsequent <td> values and return the first numeric one
+  const cellRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+  const rowContent = rowMatch[1];
+  let cellMatch;
+  while ((cellMatch = cellRegex.exec(rowContent)) !== null) {
+    const cellText = stripHTML(cellMatch[1]).trim();
+    if (cellText && cellText !== '-' && cellText !== 'N/A' && cellText !== '') {
+      const num = toNum(cellText.replace(/%/g, ''));
+      if (num !== null) return num;
+    }
+  }
+  return null;
+}
+
 // ── Response interfaces ───────────────────────
 
 interface CompanyProfile {
@@ -141,6 +219,7 @@ interface Fundamentals {
   dividendYield: number | null;
   dividendCover: number | null;
   payoutRatio: number | null;
+  marketCap: number | null;
   bookValue: number | null;
   pbv: number | null;
   enterpriseValue: number | null;
@@ -173,8 +252,10 @@ interface CompanyData {
 
 function parseProfile(html: string): CompanyProfile {
   // Try to find the company description / about section
+  // PSX uses: <div class="item__head">BUSINESS DESCRIPTION</div><p>...</p>
   let description = '';
   const descPatterns = [
+    /item__head[^>]*>\s*BUSINESS DESCRIPTION\s*<\/div>\s*<p[^>]*>([\s\S]*?)<\/p>/i,
     /<div[^>]*class="[^"]*about[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
     /<div[^>]*class="[^"]*description[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
     /<p[^>]*class="[^"]*company[^"]*desc[^"]*"[^>]*>([\s\S]*?)<\/p>/i,
@@ -192,54 +273,113 @@ function parseProfile(html: string): CompanyProfile {
     }
   }
 
-  // Extract website URL
+  // Extract website URL — only accept values that look like actual URLs
+  // PSX uses: <div class="item__head">WEBSITE</div><p><a href="http://...">...</a></p>
   let website = '';
   const websitePatterns = [
+    // PSX item__head pattern (most common on dps.psx.com.pk company pages)
+    /item__head[^>]*>\s*WEBSITE\s*<\/div>\s*<p[^>]*>\s*<a[^>]*href=["']([^"']+)["'][^>]*>/i,
+    /WEBSITE<\/div>\s*[\s\S]{0,100}?<a[^>]*href=["']([^"']+)["'][^>]*>/i,
+    // Generic patterns
+    /Website[\s\S]{0,200}?<a[^>]*href="(https?:\/\/[^"]+)"[^>]*>/i,
     /Website[:\s]*<[^>]*href="([^"]+)"[^>]*>/i,
-    /Website[:\s]*(?:<[^>]*>)*\s*(https?:\/\/[^\s<]+)/i,
-    /Website[:\s]*(?:<[^>]*>)*\s*(www\.[^\s<]+)/i,
+    /Website[:\s]*(?:<[^>]*>)*\s*(https?:\/\/[^\s<"]+)/i,
+    /Website[:\s]*(?:<[^>]*>)*\s*(www\.[\w.-]+\.[a-z]{2,}[^\s<"]*)/i,
+    /website[\s\S]{0,100}?(https?:\/\/[\w.-]+\.[a-z]{2,}[^\s<"]*)/i,
+    /website[\s\S]{0,100}?(www\.[\w.-]+\.[a-z]{2,}[^\s<"]*)/i,
   ];
   for (const pattern of websitePatterns) {
     const match = pattern.exec(html);
     if (match && match[1]) {
-      website = match[1].trim();
-      break;
+      const candidate = match[1].trim();
+      // Accept http/https/www URLs, reject javascript: and internal PSX links
+      if (
+        /^(https?:\/\/|www\.)/i.test(candidate) &&
+        candidate.length < 200 &&
+        !candidate.includes('psx.com.pk')
+      ) {
+        website = candidate;
+        break;
+      }
     }
   }
   if (!website) {
     const raw = extractTableValue(html, 'Website');
-    if (raw) website = raw;
+    if (raw && /^(https?:\/\/|www\.)/i.test(raw.trim()) && raw.trim().length < 200) {
+      website = raw.trim();
+    }
   }
 
   return {
     description,
-    marketCap: extractNumericValue(html, 'Market Cap') ??
+    marketCap: toNum(extractStatsValue(html, 'Market Cap')) ??
+               extractNumericValue(html, 'Market Cap') ??
                extractNumericValue(html, 'Market Capitalization') ??
                extractNumericValue(html, 'Mkt Cap'),
-    totalShares: extractNumericValue(html, 'Total Shares') ??
+    totalShares: toNum(extractStatsValue(html, 'Shares')) ??
+                 extractNumericValue(html, 'Total Shares') ??
                  extractNumericValue(html, 'Shares Outstanding') ??
                  extractNumericValue(html, 'Ordinary Shares'),
-    freeFloat: extractNumericValue(html, 'Free Float Shares') ??
-               extractNumericValue(html, 'Free Float$'),
-    freeFloatPct: extractPctValue(html, 'Free Float %') ??
-                  extractPctValue(html, 'Free Float Percentage') ??
-                  extractPctValue(html, 'Free Float Ratio'),
-    chairperson: extractTableValue(html, 'Chair') ??
+    freeFloat: (() => {
+      // PSX shows two "Free Float" stats — one is the number, the other is the percentage
+      // Get the non-percentage one
+      const statsRegex = /stats_label[^>]*>[\s\S]*?Free Float[\s\S]*?<\/div>\s*<div[^>]*class=["']stats_value["'][^>]*>([\s\S]*?)<\/div>/gi;
+      let m;
+      while ((m = statsRegex.exec(html)) !== null) {
+        const val = stripHTML(m[1]).trim();
+        if (!val.includes('%')) return toNum(val);
+      }
+      return null;
+    })() ??
+    extractNumericValue(html, 'Free Float Shares') ??
+    extractNumericValue(html, 'Free Float$'),
+    freeFloatPct: (() => {
+      // Get the percentage "Free Float" stat
+      const statsRegex = /stats_label[^>]*>[\s\S]*?Free Float[\s\S]*?<\/div>\s*<div[^>]*class=["']stats_value["'][^>]*>([\s\S]*?)<\/div>/gi;
+      let m;
+      while ((m = statsRegex.exec(html)) !== null) {
+        const val = stripHTML(m[1]).trim();
+        if (val.includes('%')) return toNum(val.replace(/%/g, ''));
+      }
+      return null;
+    })() ??
+    extractPctValue(html, 'Free Float %') ??
+    extractPctValue(html, 'Free Float Percentage') ??
+    extractPctValue(html, 'Free Float Ratio'),
+    chairperson: extractKeyPerson(html, 'Chairperson') ??
+                 extractKeyPerson(html, 'Chairman') ??
+                 extractItemHeadValue(html, 'CHAIRPERSON') ??
+                 extractItemHeadValue(html, 'CHAIRMAN') ??
+                 extractTableValue(html, 'Chair') ??
                  extractTableValue(html, 'Chairman') ??
                  extractTableValue(html, 'Chairperson') ?? '',
-    ceo: extractTableValue(html, 'CEO') ??
+    ceo: extractKeyPerson(html, 'CEO') ??
+         extractKeyPerson(html, 'Chief Executive') ??
+         extractItemHeadValue(html, 'CEO') ??
+         extractItemHeadValue(html, 'CHIEF EXECUTIVE') ??
+         extractTableValue(html, 'CEO') ??
          extractTableValue(html, 'Chief Executive') ??
          extractTableValue(html, 'Managing Director') ?? '',
-    secretary: extractTableValue(html, 'Secretary') ??
+    secretary: extractKeyPerson(html, 'Company Secretary') ??
+               extractKeyPerson(html, 'Secretary') ??
+               extractItemHeadValue(html, 'SECRETARY') ??
+               extractItemHeadValue(html, 'COMPANY SECRETARY') ??
+               extractTableValue(html, 'Secretary') ??
                extractTableValue(html, 'Company Secretary') ?? '',
-    address: extractTableValue(html, 'Registered Office') ??
+    address: extractItemHeadValue(html, 'REGISTERED OFFICE') ??
+             extractItemHeadValue(html, 'ADDRESS') ??
+             extractTableValue(html, 'Registered Office') ??
              extractTableValue(html, 'Address') ??
              extractTableValue(html, 'Registered Address') ?? '',
     website,
-    registrar: extractTableValue(html, 'Registrar') ??
+    registrar: extractItemHeadValue(html, 'REGISTRAR') ??
+               extractItemHeadValue(html, 'SHARE REGISTRAR') ??
+               extractTableValue(html, 'Registrar') ??
                extractTableValue(html, 'Share Registrar') ??
                extractTableValue(html, 'Transfer Agent') ?? '',
-    auditor: extractTableValue(html, 'Auditor') ??
+    auditor: extractItemHeadValue(html, 'AUDITOR') ??
+             extractItemHeadValue(html, 'EXTERNAL AUDITOR') ??
+             extractTableValue(html, 'Auditor') ??
              extractTableValue(html, 'External Auditor') ?? '',
   };
 }
@@ -249,7 +389,9 @@ function parseFundamentals(html: string): Fundamentals {
     eps: {
       annual: extractNumericValue(html, 'EPS \\(Annual\\)') ??
               extractNumericValue(html, 'EPS Annual') ??
-              extractNumericValue(html, 'Earnings Per Share'),
+              extractNumericValue(html, 'Earnings Per Share') ??
+              // Fallback: multi-year table row labelled "EPS" (but not "EPS Growth")
+              extractRowFirstValue(html, 'EPS(?!\\s*Growth)'),
       lastQuarter: extractNumericValue(html, 'EPS \\(Last Quarter\\)') ??
                    extractNumericValue(html, 'EPS Last Quarter') ??
                    extractNumericValue(html, 'Quarterly EPS'),
@@ -263,92 +405,139 @@ function parseFundamentals(html: string): Fundamentals {
       annual: extractNumericValue(html, 'P/E \\(Annual\\)') ??
               extractNumericValue(html, 'PE Ratio') ??
               extractNumericValue(html, 'P/E Ratio') ??
-              extractNumericValue(html, 'Price to Earnings'),
+              extractNumericValue(html, 'Price to Earnings') ??
+              // Fallback: multi-year table row for P/E
+              extractRowFirstValue(html, 'P/E Ratio') ??
+              extractRowFirstValue(html, 'P/E \\(TTM\\)'),
       expected: extractNumericValue(html, 'P/E \\(Expected\\)') ??
                 extractNumericValue(html, 'Expected P/E') ??
-                extractNumericValue(html, 'Forward P/E'),
+                extractNumericValue(html, 'Forward P/E') ??
+                extractRowFirstValue(html, 'Forward P/E'),
     },
     earningGrowth: extractPctValue(html, 'Earning Growth') ??
-                   extractPctValue(html, 'Earnings Growth'),
+                   extractPctValue(html, 'Earnings Growth') ??
+                   // Fallback: "EPS Growth" row in RATIOS table
+                   extractRowFirstValue(html, 'EPS Growth'),
     pegRatio: extractNumericValue(html, 'PEG Ratio') ??
-              extractNumericValue(html, 'PEG'),
+              extractNumericValue(html, 'PEG') ??
+              extractRowFirstValue(html, 'PEG'),
     forwardPeg: extractNumericValue(html, 'Forward PEG') ??
                 extractNumericValue(html, 'Fwd PEG'),
     profitMargins: {
       gross: extractPctValue(html, 'Gross Margin') ??
-             extractPctValue(html, 'Gross Profit Margin'),
+             extractPctValue(html, 'Gross Profit Margin') ??
+             extractRowFirstValue(html, 'Gross Profit Margin'),
       operating: extractPctValue(html, 'Operating Margin') ??
-                 extractPctValue(html, 'Operating Profit Margin'),
+                 extractPctValue(html, 'Operating Profit Margin') ??
+                 extractRowFirstValue(html, 'Operating Profit Margin') ??
+                 extractRowFirstValue(html, 'Operating Margin'),
       net: extractPctValue(html, 'Net Margin') ??
-           extractPctValue(html, 'Net Profit Margin'),
-      ebitda: extractPctValue(html, 'EBITDA Margin'),
+           extractPctValue(html, 'Net Profit Margin') ??
+           extractRowFirstValue(html, 'Net Profit Margin'),
+      ebitda: extractPctValue(html, 'EBITDA Margin') ??
+              extractRowFirstValue(html, 'EBITDA Margin') ??
+              extractRowFirstValue(html, 'EBITDA'),
     },
     returnOn: {
       roe: extractPctValue(html, 'ROE') ??
-           extractPctValue(html, 'Return on Equity'),
+           extractPctValue(html, 'Return on Equity') ??
+           extractRowFirstValue(html, 'Return on Equity') ??
+           extractRowFirstValue(html, 'ROE'),
       roa: extractPctValue(html, 'ROA') ??
-           extractPctValue(html, 'Return on Assets'),
+           extractPctValue(html, 'Return on Assets') ??
+           extractRowFirstValue(html, 'Return on Assets') ??
+           extractRowFirstValue(html, 'ROA'),
       roce: extractPctValue(html, 'ROCE') ??
-            extractPctValue(html, 'Return on Capital Employed'),
+            extractPctValue(html, 'Return on Capital Employed') ??
+            extractRowFirstValue(html, 'ROCE'),
     },
     dps: {
       annual: extractNumericValue(html, 'DPS \\(Annual\\)') ??
-              extractNumericValue(html, 'Dividend Per Share'),
+              extractNumericValue(html, 'Dividend Per Share') ??
+              extractRowFirstValue(html, 'DPS'),
       lastQuarter: extractNumericValue(html, 'DPS \\(Last Quarter\\)') ??
                    extractNumericValue(html, 'Quarterly DPS'),
       lastInterim: extractNumericValue(html, 'DPS \\(Interim\\)') ??
                    extractNumericValue(html, 'Interim DPS') ??
                    extractNumericValue(html, 'Last Interim'),
     },
-    dividendYield: extractPctValue(html, 'Dividend Yield'),
-    dividendCover: extractNumericValue(html, 'Dividend Cover'),
-    payoutRatio: extractPctValue(html, 'Payout Ratio'),
+    dividendYield: extractPctValue(html, 'Dividend Yield') ??
+                   extractRowFirstValue(html, 'Dividend Yield'),
+    dividendCover: extractNumericValue(html, 'Dividend Cover') ??
+                   extractRowFirstValue(html, 'Dividend Cover'),
+    payoutRatio: extractPctValue(html, 'Payout Ratio') ??
+                 extractRowFirstValue(html, 'Payout Ratio'),
+    marketCap: extractNumericValue(html, 'Market Cap') ??
+               extractNumericValue(html, 'Market Capitalization') ??
+               extractNumericValue(html, 'Mkt Cap') ??
+               extractRowFirstValue(html, 'Market Cap'),
     bookValue: extractNumericValue(html, 'Book Value') ??
-               extractNumericValue(html, 'Book Value Per Share'),
+               extractNumericValue(html, 'Book Value Per Share') ??
+               extractRowFirstValue(html, 'Book Value'),
     pbv: extractNumericValue(html, 'P/BV') ??
          extractNumericValue(html, 'Price to Book') ??
-         extractNumericValue(html, 'PBV'),
+         extractNumericValue(html, 'PBV') ??
+         extractRowFirstValue(html, 'P/BV') ??
+         extractRowFirstValue(html, 'Price to Book'),
     enterpriseValue: extractNumericValue(html, 'Enterprise Value') ??
-                     extractNumericValue(html, 'EV'),
-    currentRatio: extractNumericValue(html, 'Current Ratio'),
-    quickRatio: extractNumericValue(html, 'Quick Ratio'),
-    inventoryTurnover: extractNumericValue(html, 'Inventory Turnover'),
-    assetTurnover: extractNumericValue(html, 'Asset Turnover'),
+                     extractNumericValue(html, 'EV') ??
+                     extractRowFirstValue(html, 'Enterprise Value'),
+    currentRatio: extractNumericValue(html, 'Current Ratio') ??
+                  extractRowFirstValue(html, 'Current Ratio'),
+    quickRatio: extractNumericValue(html, 'Quick Ratio') ??
+                extractRowFirstValue(html, 'Quick Ratio'),
+    inventoryTurnover: extractNumericValue(html, 'Inventory Turnover') ??
+                       extractRowFirstValue(html, 'Inventory Turnover'),
+    assetTurnover: extractNumericValue(html, 'Asset Turnover') ??
+                   extractRowFirstValue(html, 'Asset Turnover'),
     equityToAssets: extractPctValue(html, 'Equity to Assets') ??
-                    extractPctValue(html, 'Equity/Assets'),
+                    extractPctValue(html, 'Equity/Assets') ??
+                    extractRowFirstValue(html, 'Equity to Assets'),
     debtToEquity: extractNumericValue(html, 'Debt to Equity') ??
                   extractNumericValue(html, 'D/E Ratio') ??
-                  extractNumericValue(html, 'Debt/Equity'),
+                  extractNumericValue(html, 'Debt/Equity') ??
+                  extractRowFirstValue(html, 'Debt to Equity') ??
+                  extractRowFirstValue(html, 'D/E Ratio'),
     debtToAssets: extractNumericValue(html, 'Debt to Assets') ??
-                  extractNumericValue(html, 'Debt/Assets'),
+                  extractNumericValue(html, 'Debt/Assets') ??
+                  extractRowFirstValue(html, 'Debt to Assets'),
   };
 }
 
 function parseCompanyName(html: string, symbol: string): string {
-  // Try <h1>, <h2>, or title patterns
-  const namePatterns = [
-    /<h1[^>]*>([\s\S]*?)<\/h1>/i,
-    /<title[^>]*>([\s\S]*?)<\/title>/i,
-    new RegExp(`${symbol}\\s*[-|:]\\s*([^<]+)`, 'i'),
-    /<h2[^>]*>([\s\S]*?)<\/h2>/i,
-  ];
+  // PSX title format: "ENGRO - Stock quote for Engro Corporation Limited - Pakistan Stock Exchange (PSX)"
+  const titleMatch = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html);
+  if (titleMatch && titleMatch[1]) {
+    const title = stripHTML(titleMatch[1]).trim();
+    // Extract "Stock quote for COMPANY NAME"
+    const sqMatch = /Stock quote for\s+(.+?)\s*[-–]\s*Pakistan/i.exec(title);
+    if (sqMatch && sqMatch[1]) {
+      return sqMatch[1].trim();
+    }
+    // Try "SYMBOL - COMPANY NAME - PSX" format
+    const dashMatch = new RegExp(`^${symbol}\\s*[-–]\\s*(.+?)\\s*[-–]\\s*(?:PSX|Pakistan)`, 'i').exec(title);
+    if (dashMatch && dashMatch[1]) {
+      const candidate = dashMatch[1].replace(/Stock quote for\s*/i, '').trim();
+      if (candidate.length > 2) return candidate;
+    }
+  }
 
-  for (const pattern of namePatterns) {
-    const match = pattern.exec(html);
-    if (match && match[1]) {
-      let name = stripHTML(match[1]).trim();
-      // Remove "PSX" or "Pakistan Stock Exchange" suffix/prefix
-      name = name
-        .replace(/\s*[-|]\s*PSX.*$/i, '')
-        .replace(/\s*[-|]\s*Pakistan Stock Exchange.*$/i, '')
-        .replace(/^PSX\s*[-|]\s*/i, '')
-        .trim();
-      // If the name starts with the symbol, try to extract the company name
-      if (name.toUpperCase().startsWith(symbol.toUpperCase())) {
-        const rest = name.slice(symbol.length).replace(/^\s*[-|:]\s*/, '').trim();
-        if (rest.length > 2) return rest;
-      }
-      if (name.length > 1 && name.length < 200) return name;
+  // PSX og:description: "...about the Engro Corporation Limited (ENGRO)..."
+  const ogMatch = /about the\s+(.+?)\s*\(/i.exec(html);
+  if (ogMatch && ogMatch[1]) {
+    return ogMatch[1].trim();
+  }
+
+  // Fallback: h1 tags (skip generic ones like "Company Profile")
+  const h1Regex = /<h1[^>]*>([\s\S]*?)<\/h1>/gi;
+  let h1Match;
+  while ((h1Match = h1Regex.exec(html)) !== null) {
+    const text = stripHTML(h1Match[1]).trim();
+    if (text.length > 2 && text.length < 200 &&
+        !text.includes('Profile') && !text.includes('Financials') &&
+        !text.includes('Ratios') && !text.includes('Announcements') &&
+        !text.includes('Reports')) {
+      return text;
     }
   }
 
@@ -357,6 +546,9 @@ function parseCompanyName(html: string, symbol: string): string {
 
 function parseSector(html: string): string {
   const sectorPatterns = [
+    // PSX uses: <div class="quote__sector"><span>FERTILIZER</span></div>
+    /quote__sector[^>]*>\s*<span[^>]*>([^<]+)<\/span>/i,
+    /quote__sector[^>]*>([\s\S]*?)<\/div>/i,
     /Sector[:\s]*(?:<[^>]*>)*\s*([^<]+)/i,
     /Industry[:\s]*(?:<[^>]*>)*\s*([^<]+)/i,
     /<span[^>]*class="[^"]*sector[^"]*"[^>]*>([^<]+)<\/span>/i,
@@ -378,18 +570,27 @@ function parseSector(html: string): string {
 function parseAnnouncements(html: string): Announcement[] {
   const announcements: Announcement[] = [];
 
-  // Try table rows first (most common for PSX)
-  const tableRowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-  let rowMatch;
+  /** Normalise relative URLs to absolute dps.psx.com.pk URLs */
+  const toAbsolute = (url: string): string =>
+    url.startsWith('http') ? url : `https://dps.psx.com.pk${url.startsWith('/') ? '' : '/'}${url}`;
 
-  // Check if there is an announcements section
-  const announceSectionIndex = html.search(/announcements?|notices?/i);
+  // Find the announcements section — prefer the id="announcements" anchor (most reliable on PSX)
+  let announceSectionIndex = html.search(/id=["']announcements["']/i);
+  // Only fall back to broader search if the exact id isn't found
+  if (announceSectionIndex < 0) {
+    announceSectionIndex = html.search(/section__title[^>]*>Announcements</i);
+  }
   const announcementHtml = announceSectionIndex >= 0
     ? html.slice(announceSectionIndex)
     : '';
 
   if (announcementHtml) {
+    // PSX uses table rows: <tr><td>Date</td><td>Title</td><td>View/PDF</td></tr>
+    const tableRowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+    let rowMatch;
+
     while ((rowMatch = tableRowRegex.exec(announcementHtml)) !== null) {
+      const fullRow = rowMatch[0];
       const rowContent = rowMatch[1];
 
       // Skip header rows
@@ -403,32 +604,56 @@ function parseAnnouncements(html: string): Announcement[] {
       }
 
       if (cells.length >= 2) {
-        // Try to extract date from first cell
         const dateStr = stripHTML(cells[0]).trim();
-        // Try to extract title from second cell
         const titleStr = stripHTML(cells[1] || cells[0]).trim();
 
         if (!dateStr && !titleStr) continue;
         if (titleStr.toLowerCase().includes('date') && titleStr.length < 10) continue;
 
-        // Extract any links
+        // Skip rows where the first cell doesn't look like a date (e.g. KEY PEOPLE rows)
+        // PSX dates look like "Oct 29, 2024" or "Apr 4, 2024"
+        if (dateStr && !/\d{4}|\d{1,2}[,\s]+\d{4}|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i.test(dateStr)) {
+          continue;
+        }
+
         let viewUrl: string | null = null;
         let pdfUrl: string | null = null;
 
-        const linkRegex = /<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
-        let linkMatch;
-        const fullRow = rowMatch[0];
-        while ((linkMatch = linkRegex.exec(fullRow)) !== null) {
-          const href = linkMatch[1];
-          const linkText = stripHTML(linkMatch[2]).toLowerCase();
+        // Extract PDF links: <a href="/download/document/XXXXX.pdf">PDF</a>
+        const pdfLinkRegex = /<a[^>]*href=["']([^"']*\.pdf)["'][^>]*>/gi;
+        let pdfMatch;
+        while ((pdfMatch = pdfLinkRegex.exec(fullRow)) !== null) {
+          pdfUrl = toAbsolute(pdfMatch[1].trim());
+        }
 
-          if (href.endsWith('.pdf') || linkText.includes('pdf') || linkText.includes('download')) {
-            pdfUrl = href.startsWith('http') ? href : `https://dps.psx.com.pk${href}`;
-          } else if (linkText.includes('view') || linkText.includes('detail')) {
-            viewUrl = href.startsWith('http') ? href : `https://dps.psx.com.pk${href}`;
-          } else if (!viewUrl) {
-            viewUrl = href.startsWith('http') ? href : `https://dps.psx.com.pk${href}`;
+        // Extract View image links: <a href="javascript:" data-images="XXXXX-1.gif">View</a>
+        // Build viewable image URL from data-images attribute
+        const dataImagesRegex = /data-images=["']([^"']+)["']/i;
+        const dataImagesMatch = dataImagesRegex.exec(fullRow);
+        if (dataImagesMatch && dataImagesMatch[1]) {
+          // PSX serves announcement images at the same /download/document/ path
+          viewUrl = toAbsolute(`/download/document/${dataImagesMatch[1]}`);
+        }
+
+        // If no data-images, try regular href links (skip javascript: links)
+        if (!viewUrl) {
+          const linkRegex = /<a[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
+          let linkMatch;
+          while ((linkMatch = linkRegex.exec(fullRow)) !== null) {
+            const href = linkMatch[1].trim();
+            const linkText = stripHTML(linkMatch[2]).toLowerCase();
+            // Skip javascript: links and PDF links (already captured)
+            if (href.startsWith('javascript:') || href.endsWith('.pdf')) continue;
+            if (href && (linkText.includes('view') || linkText.includes('detail'))) {
+              viewUrl = toAbsolute(href);
+              break;
+            }
           }
+        }
+
+        // If we only have PDF and no view URL, use PDF as view URL too
+        if (!viewUrl && pdfUrl) {
+          viewUrl = pdfUrl;
         }
 
         if (dateStr || titleStr) {
@@ -439,26 +664,6 @@ function parseAnnouncements(html: string): Announcement[] {
             pdfUrl,
           });
         }
-      }
-    }
-  }
-
-  // If no table-based announcements found, try generic link pattern
-  if (announcements.length === 0) {
-    const announceLinkRegex =
-      /<a[^>]*href="([^"]*(?:announcement|notice|circular)[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
-    let linkMatch;
-    while ((linkMatch = announceLinkRegex.exec(html)) !== null) {
-      const href = linkMatch[1];
-      const title = stripHTML(linkMatch[2]).trim();
-      if (title && title.length > 2) {
-        const url = href.startsWith('http') ? href : `https://dps.psx.com.pk${href}`;
-        announcements.push({
-          date: '',
-          title,
-          viewUrl: url,
-          pdfUrl: href.endsWith('.pdf') ? url : null,
-        });
       }
     }
   }
