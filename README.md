@@ -48,10 +48,22 @@ A personal investment tracking app for the **Pakistan Stock Exchange (PSX)**. Tr
 - Real company logos via Google Favicon API (60+ mapped stocks)
 - Colored fallback circles for unmapped stocks
 - Search by symbol or company name
+- **38 sector codes mapped** to proper names with emojis (e.g. "🏦 Commercial Banks")
 - Filter by sector, sort by change%, volume, price
 - Stats bar: total, gainers (green), losers (red), unchanged
+- **Clickable stocks** — tap any stock to open full detail page
 - "Load More" pagination for performance
 - Mobile-optimized card layout
+
+### Stock Detail Page (NEW)
+Each stock has a dedicated detail page (`/stocks/[symbol]`) with **6 tabs**:
+
+- **Live** — Current price, intraday chart (1D/1M/6M/YTD/1Y/3Y/5Y), stats (volume, open, LDCP), latest quote (bid/ask), Day's Range slider, 52-Week Range slider, Circuit Breakers (±7.5%)
+- **Fundamentals** — Earnings (EPS, P/E, PEG), Performance (profit margins, ROE/ROA/ROCE), Payouts (DPS, dividend yield), Valuations (book value, PBV, market cap), Financial Health (current ratio, quick ratio, debt ratios)
+- **Technicals** — RSI(14), STOCH(14,3,3), MACD(12,26,9) with BUY/SELL/NEUTRAL signals; Pivot Points (R3-S3); Simple Moving Averages (SMA5-150) — all computed locally from EOD data
+- **Announcements** — Company announcements with VIEW/PDF links, chronological list
+- **Profile** — Company background, equity profile (market cap, shares, free float), top executives, contact info
+- **Competitors** — Sector peers with logos, prices, and change %
 
 ### Risk & Sectors
 - Risk meter gauges (stock concentration, sector concentration, leverage)
@@ -288,6 +300,8 @@ src/
 │   ├── api/psx/indices/route.ts    # PSX indices API
 │   ├── api/psx/indices/[index]/route.ts  # Index intraday data
 │   ├── api/psx/history/[symbol]/route.ts
+│   ├── api/psx/company/[symbol]/route.ts  # Company scraper (fundamentals, profile, announcements)
+│   ├── stocks/[symbol]/page.tsx           # Stock detail page (6 tabs)
 │   ├── api/notifications/market-open/route.ts   # Cron: market open email
 │   └── api/notifications/market-close/route.ts  # Cron: close + daily report
 ├── components/
@@ -301,7 +315,7 @@ src/
 │   ├── risk/        # RiskMeter, ConcentrationAlert, SectorBreakdown
 │   └── settings/    # TwoFactorSetup, ProfileSection
 ├── hooks/           # useAuth, useTrades, usePortfolio, etc.
-├── lib/             # supabase, calculations, formatters, psx, stock-logos, email
+├── lib/             # supabase, calculations, formatters, psx, stock-logos, email, technicals
 ├── types/           # TypeScript interfaces
 └── middleware.ts     # Route protection
 ```
