@@ -896,7 +896,7 @@ export default function StockDetailPage({
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-[200px]">
-                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No chart data</p>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Chart data not available on PSX Data Portal</p>
               </div>
             )}
           </div>
@@ -972,7 +972,7 @@ export default function StockDetailPage({
             <EmptyTabState
               icon={BarChart3}
               title="Fundamentals Unavailable"
-              message="Fundamental data is not available for this stock at the moment."
+              message="This data is not published on the PSX Data Portal for this stock."
             />
           )}
         </div>
@@ -987,7 +987,7 @@ export default function StockDetailPage({
             <EmptyTabState
               icon={Activity}
               title="Insufficient Data"
-              message="Not enough historical data to compute technical indicators."
+              message="Not enough historical data available on PSX to compute technical indicators."
             />
           ) : (
             <div>
@@ -1211,7 +1211,7 @@ export default function StockDetailPage({
             <EmptyTabState
               icon={FileText}
               title="No Announcements"
-              message="There are no announcements available for this stock."
+              message="No announcements published on the PSX Data Portal for this stock."
             />
           )}
         </div>
@@ -1379,7 +1379,7 @@ export default function StockDetailPage({
             <EmptyTabState
               icon={Building2}
               title="Profile Unavailable"
-              message="Company profile data is not available for this stock."
+              message="Company profile data is not available on the PSX Data Portal for this stock."
             />
           )}
         </div>
@@ -1394,7 +1394,7 @@ export default function StockDetailPage({
             <EmptyTabState
               icon={Users}
               title="No Peers Found"
-              message="No other stocks found in the same sector."
+              message="No other stocks found in the same sector on PSX."
             />
           ) : (
             <div>
