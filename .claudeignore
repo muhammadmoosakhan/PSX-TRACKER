@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+.next/
+.cache/
+*.log
+coverage/
+.git/
+audit_results.json
+audit_results_post_fix.json
+src/lib/psx-companies.ts

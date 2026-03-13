@@ -2,7 +2,7 @@
 
 A personal investment tracking app for the **Pakistan Stock Exchange (PSX)**. Track trades, monitor your portfolio in real-time, analyze performance, and manage risk — all in one place.
 
-**Live:** [psx-tracker.vercel.app](https://psx-tracker.vercel.app)
+**Live:** [psx-tracker-two.vercel.app](https://psx-tracker-two.vercel.app)
 
 ---
 
@@ -65,6 +65,8 @@ Each stock has a dedicated detail page (`/stocks/[symbol]`) with **6 tabs**:
 - **Profile** — Company background, equity profile (market cap, shares, free float), top executives, contact info
 - **Competitors** — Sector peers with logos, prices, and change %
 
+> **Derivative symbol support:** 66 derivative tickers (XD, NC, WU, XB, XR, ETFXD, NLXB suffixes) automatically resolve to their parent company data for profile, fundamentals, news, and chart history.
+
 ### Risk & Sectors
 - Risk meter gauges (stock concentration, sector concentration, leverage)
 - Automated alerts for concentration thresholds
@@ -78,6 +80,11 @@ Each stock has a dedicated detail page (`/stocks/[symbol]`) with **6 tabs**:
 - Configurable per-user: toggle on/off, choose notification types
 - Dark-themed HTML email templates with KPI cards and color-coded tables
 - Works with any SMTP provider (Gmail, Outlook, custom)
+
+### Watchlist
+- Add stocks to personal watchlist with target buy prices
+- Track watchlisted stocks against live market data
+- Notes per watchlist entry
 
 ### Settings
 - Configurable brokerage rate, CVT, capital gains tax slabs
@@ -330,6 +337,33 @@ Deployed on [Vercel](https://vercel.com). To deploy your own:
 2. Import in Vercel
 3. Add environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
 4. Update Supabase redirect URLs with your Vercel domain
+
+---
+
+## Audit Scripts
+
+Diagnostic scripts for verifying data coverage across all ~506 PSX stocks:
+
+```bash
+node scripts/audit_all_stocks.js          # Full audit of all stocks (6 tabs each)
+node scripts/check_stock.js HUBC          # Deep check a single stock
+node scripts/summarize_issues.js          # Grouped issue report from audit
+node scripts/list_broken.js               # List stocks with critical failures
+node scripts/list_broken.js history       # Filter by tab (live/history/company/fundamentals/announcements/profile)
+node scripts/diff_audit_results.js        # Compare pre/post fix audit results
+bash scripts/progress.sh                  # One-line health summary
+```
+
+### Latest Audit Results
+
+| Metric | Count |
+|--------|-------|
+| Stocks audited | 472 |
+| Fully working (all tabs) | 416 (88%) |
+| Partial (some data missing) | 56 (12%) |
+| Broken (critical failures) | 0 (0%) |
+
+See [docs/FIXES_APPLIED.md](docs/FIXES_APPLIED.md) and [docs/ISSUES_FOUND.md](docs/ISSUES_FOUND.md) for details.
 
 ---
 

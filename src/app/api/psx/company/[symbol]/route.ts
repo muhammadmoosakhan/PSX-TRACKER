@@ -718,6 +718,69 @@ async function fetchAnnouncementsEndpoint(
   }
 }
 
+// ── Derivative symbol handling ─────────────────
+// PSX lists derivative symbols (XD=ex-dividend, NC=non-cumulative, WU=warrants, etc.)
+// that don't have their own company pages. Strip the suffix to get the parent symbol.
+// Try shortest suffix first so JSGBETFXD → JSGBETF (not JSGB)
+const DERIVATIVE_SUFFIX_LIST = ['XD', 'NC', 'WU', 'XB', 'XR', 'PS', 'CPS', 'ETFXD', 'NLXB'];
+
+function getParentSymbols(symbol: string): string[] {
+  const candidates: string[] = [];
+  for (const suffix of DERIVATIVE_SUFFIX_LIST) {
+    if (symbol.endsWith(suffix) && symbol.length > suffix.length) {
+      candidates.push(symbol.slice(0, -suffix.length));
+    }
+  }
+  return candidates;
+}
+
+// ── Fetch + parse company HTML ────────────────
+
+async function fetchAndParseCompany(
+  fetchSymbol: string,
+  displaySymbol: string,
+  announcementsFromEndpoint: Announcement[]
+): Promise<CompanyData | null> {
+  const res = await fetch(`${PSX_COMPANY_URL}/${encodeURIComponent(fetchSymbol)}`, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (compatible; PSXTracker/1.0)',
+      Accept: 'text/html,application/json',
+    },
+    next: { revalidate: 3600 },
+  });
+
+  if (!res.ok || res.status === 404) return null;
+
+  const html = await res.text();
+  if (html.length < 200) return null;
+
+  const name = parseCompanyName(html, fetchSymbol);
+  const sector = parseSector(html);
+  const profile = parseProfile(html);
+  const fundamentals = parseFundamentals(html);
+  const announcementsFromPage = parseAnnouncements(html);
+
+  // Merge announcements
+  const seenTitles = new Set(
+    announcementsFromEndpoint.map((a) => a.title.toLowerCase().trim())
+  );
+  const mergedAnnouncements = [
+    ...announcementsFromEndpoint,
+    ...announcementsFromPage.filter(
+      (a) => !seenTitles.has(a.title.toLowerCase().trim())
+    ),
+  ];
+
+  return {
+    symbol: displaySymbol,
+    name,
+    sector,
+    profile,
+    fundamentals,
+    announcements: mergedAnnouncements,
+  };
+}
+
 // ── Main route handler ────────────────────────
 
 export async function GET(
@@ -736,67 +799,28 @@ export async function GET(
   const upperSymbol = symbol.toUpperCase().trim();
 
   try {
-    // Fetch company page and announcements endpoint in parallel
-    const [companyRes, announcementsFromEndpoint] = await Promise.all([
-      fetch(`${PSX_COMPANY_URL}/${encodeURIComponent(upperSymbol)}`, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; PSXTracker/1.0)',
-          Accept: 'text/html,application/json',
-        },
-        next: { revalidate: 3600 },
-      }),
-      fetchAnnouncementsEndpoint(upperSymbol),
-    ]);
+    const announcementsFromEndpoint = await fetchAnnouncementsEndpoint(upperSymbol);
 
-    if (!companyRes.ok) {
-      if (companyRes.status === 404) {
-        return NextResponse.json(
-          { error: `Company not found: ${upperSymbol}` },
-          { status: 404 }
-        );
+    // Try the exact symbol first
+    let companyData = await fetchAndParseCompany(upperSymbol, upperSymbol, announcementsFromEndpoint);
+
+    // If exact symbol fails, try stripping derivative suffixes (XD, NC, WU, etc.)
+    if (!companyData) {
+      const parentCandidates = getParentSymbols(upperSymbol);
+      for (const parentSymbol of parentCandidates) {
+        const parentAnnouncements = await fetchAnnouncementsEndpoint(parentSymbol);
+        const allAnnouncements = [...announcementsFromEndpoint, ...parentAnnouncements];
+        companyData = await fetchAndParseCompany(parentSymbol, upperSymbol, allAnnouncements);
+        if (companyData) break;
       }
-      return NextResponse.json(
-        { error: `PSX returned status ${companyRes.status}` },
-        { status: 502 }
-      );
     }
 
-    const html = await companyRes.text();
-
-    // Verify we got actual content (not an error page or redirect)
-    if (html.length < 200) {
+    if (!companyData) {
       return NextResponse.json(
-        { error: `No data available for symbol: ${upperSymbol}` },
+        { error: `Company not found: ${upperSymbol}` },
         { status: 404 }
       );
     }
-
-    // Parse all sections from HTML
-    const name = parseCompanyName(html, upperSymbol);
-    const sector = parseSector(html);
-    const profile = parseProfile(html);
-    const fundamentals = parseFundamentals(html);
-    const announcementsFromPage = parseAnnouncements(html);
-
-    // Merge announcements: prefer dedicated endpoint, supplement with page data
-    const seenTitles = new Set(
-      announcementsFromEndpoint.map((a) => a.title.toLowerCase().trim())
-    );
-    const mergedAnnouncements = [
-      ...announcementsFromEndpoint,
-      ...announcementsFromPage.filter(
-        (a) => !seenTitles.has(a.title.toLowerCase().trim())
-      ),
-    ];
-
-    const companyData: CompanyData = {
-      symbol: upperSymbol,
-      name,
-      sector,
-      profile,
-      fundamentals,
-      announcements: mergedAnnouncements,
-    };
 
     return NextResponse.json(companyData);
   } catch (err) {
