@@ -117,8 +117,11 @@ export async function GET(
     // 3. Trend Analysis
     const trendAnalysis = analyzeTrend(closes, highs, lows);
 
-    // 4. Volatility
-    const volatilityPct = computeVolatility(highs, lows, closes);
+    // 4. Volatility — use ORIGINAL unscaled data for accurate ATR
+    const origCloses = historyData.map((d) => d.close);
+    const origHighs = historyData.map((d) => d.high);
+    const origLows = historyData.map((d) => d.low);
+    const volatilityPct = computeVolatility(origHighs, origLows, origCloses);
 
     // 5. Sanity-check predictions — clamp to ±10% of current price
     const clampPrediction = (pred: number) => {
