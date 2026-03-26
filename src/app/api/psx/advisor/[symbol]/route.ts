@@ -104,7 +104,23 @@ export async function GET(
     // 4. Volatility
     const volatilityPct = computeVolatility(highs, lows, closes);
 
-    // 5. Composite Advisory
+    // 5. Sanity-check predictions — clamp to ±10% of current price
+    const clampPrediction = (pred: number) => {
+      if (currentPrice <= 0) return pred;
+      const maxMove = currentPrice * 0.10;
+      return parseFloat(Math.max(currentPrice - maxMove, Math.min(currentPrice + maxMove, pred)).toFixed(2));
+    };
+    trendAnalysis.shortTerm.predictedNext = clampPrediction(trendAnalysis.shortTerm.predictedNext);
+    trendAnalysis.shortTerm.confidenceLow = clampPrediction(trendAnalysis.shortTerm.confidenceLow);
+    trendAnalysis.shortTerm.confidenceHigh = clampPrediction(trendAnalysis.shortTerm.confidenceHigh);
+    trendAnalysis.mediumTerm.predictedNext = clampPrediction(trendAnalysis.mediumTerm.predictedNext);
+    trendAnalysis.mediumTerm.confidenceLow = clampPrediction(trendAnalysis.mediumTerm.confidenceLow);
+    trendAnalysis.mediumTerm.confidenceHigh = clampPrediction(trendAnalysis.mediumTerm.confidenceHigh);
+    trendAnalysis.longTerm.predictedNext = clampPrediction(trendAnalysis.longTerm.predictedNext);
+    trendAnalysis.longTerm.confidenceLow = clampPrediction(trendAnalysis.longTerm.confidenceLow);
+    trendAnalysis.longTerm.confidenceHigh = clampPrediction(trendAnalysis.longTerm.confidenceHigh);
+
+    // 6. Composite Advisory
     const advisory = computeAdvisory({
       technicalScore,
       sentimentResult,

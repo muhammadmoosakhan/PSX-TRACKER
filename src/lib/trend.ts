@@ -268,8 +268,9 @@ export function analyzeTrend(
   score += dirScore(mediumTerm) * weights.medium;
   score += dirScore(longTerm) * weights.long;
 
-  if (crossover.type === 'golden_cross' && (crossover.daysAgo ?? 999) < 30) score += weights.crossover;
-  else if (crossover.type === 'death_cross' && (crossover.daysAgo ?? 999) < 30) score -= weights.crossover;
+  // Only count crossovers within last 60 days as active signals
+  if (crossover.type === 'golden_cross' && (crossover.daysAgo ?? 999) < 60) score += weights.crossover;
+  else if (crossover.type === 'death_cross' && (crossover.daysAgo ?? 999) < 60) score -= weights.crossover;
 
   score = Math.max(-1, Math.min(1, score));
 
