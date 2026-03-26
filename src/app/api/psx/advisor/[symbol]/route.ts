@@ -74,9 +74,25 @@ export async function GET(
       }
     }
 
-    const closes = historyData.map((d) => d.close);
-    const highs = historyData.map((d) => d.high);
-    const lows = historyData.map((d) => d.low);
+    let closes = historyData.map((d) => d.close);
+    let highs = historyData.map((d) => d.high);
+    let lows = historyData.map((d) => d.low);
+
+    // Data quality check: if last history close differs from current price by >20%,
+    // history may be stale or stock had a split. Adjust history to align with current price.
+    const lastHistoryClose = closes[closes.length - 1];
+    let dataWarning = '';
+    if (currentPrice > 0 && lastHistoryClose > 0) {
+      const drift = Math.abs(currentPrice - lastHistoryClose) / lastHistoryClose;
+      if (drift > 0.20) {
+        // Likely stock split or very stale data — scale history to match current price
+        const scaleFactor = currentPrice / lastHistoryClose;
+        closes = closes.map((c) => c * scaleFactor);
+        highs = highs.map((h) => h * scaleFactor);
+        lows = lows.map((l) => l * scaleFactor);
+        dataWarning = `Historical data adjusted (${(drift * 100).toFixed(0)}% drift detected — possible split or stale data)`;
+      }
+    }
 
     // 1. Technical Analysis
     const rsi = computeRSI(closes);
@@ -129,6 +145,16 @@ export async function GET(
       volatilityPct,
     });
 
+    // Add data warning to reasoning if present
+    if (dataWarning) {
+      advisory.reasoning.push(dataWarning);
+    }
+
+    // Use short-term prediction for next-day (most relevant timeframe)
+    const bestPrediction = trendAnalysis.shortTerm.r2 > trendAnalysis.mediumTerm.r2
+      ? trendAnalysis.shortTerm
+      : trendAnalysis.mediumTerm;
+
     return NextResponse.json({
       symbol: upperSymbol,
       name: stockName,
@@ -161,9 +187,10 @@ export async function GET(
         overallLabel: trendAnalysis.overallLabel,
         supportResistance: trendAnalysis.supportResistance,
         prediction: {
-          nextDay: trendAnalysis.mediumTerm.predictedNext,
-          confidenceLow: trendAnalysis.mediumTerm.confidenceLow,
-          confidenceHigh: trendAnalysis.mediumTerm.confidenceHigh,
+          nextDay: bestPrediction.predictedNext,
+          confidenceLow: bestPrediction.confidenceLow,
+          confidenceHigh: bestPrediction.confidenceHigh,
+          r2: bestPrediction.r2,
         },
       },
     }, {

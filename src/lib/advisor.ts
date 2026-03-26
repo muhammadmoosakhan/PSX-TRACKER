@@ -134,8 +134,10 @@ export function computeAdvisory(params: {
   else if (trendAnalysis.overallLabel.includes('Down')) reasoning.push(`Price trend: ${trendAnalysis.overallLabel}`);
   else reasoning.push('Price trend is sideways');
 
-  if (trendAnalysis.crossover.type === 'golden_cross') reasoning.push(`Golden Cross detected ${trendAnalysis.crossover.daysAgo ?? ''}d ago`);
-  if (trendAnalysis.crossover.type === 'death_cross') reasoning.push(`Death Cross detected ${trendAnalysis.crossover.daysAgo ?? ''}d ago`);
+  // Only show crossover in reasoning if it's recent (< 60 days)
+  const crossDays = trendAnalysis.crossover.daysAgo ?? 999;
+  if (trendAnalysis.crossover.type === 'golden_cross' && crossDays < 60) reasoning.push(`Golden Cross detected ${crossDays}d ago — bullish`);
+  else if (trendAnalysis.crossover.type === 'death_cross' && crossDays < 60) reasoning.push(`Death Cross detected ${crossDays}d ago — bearish`);
 
   if (volatilityPct > 4) reasoning.push(`High volatility (${volatilityPct}% ATR) — higher risk`);
 
@@ -146,11 +148,27 @@ export function computeAdvisory(params: {
   else if (label === 'Sell') suggestedAction = 'Consider reducing position. Signals turning bearish.';
   else if (label === 'Strong Sell') suggestedAction = 'Consider selling. Multiple indicators align bearish.';
 
-  // Price targets using support/resistance + trend
+  // Price targets — use S/R if within ±20% of current price, otherwise derive from current price
   const sr = trendAnalysis.supportResistance;
-  const targetEntry = sr.nearestSupport ? parseFloat((sr.nearestSupport * 1.005).toFixed(2)) : null;
-  const targetExit = sr.nearestResistance ? parseFloat((sr.nearestResistance * 0.995).toFixed(2)) : null;
-  const stopLoss = sr.nearestSupport ? parseFloat((sr.nearestSupport * 0.97).toFixed(2)) : currentPrice > 0 ? parseFloat((currentPrice * 0.93).toFixed(2)) : null;
+  const isReasonable = (level: number | null) => level !== null && currentPrice > 0 && Math.abs(level - currentPrice) / currentPrice < 0.2;
+
+  const nearSupport = isReasonable(sr.nearestSupport) ? sr.nearestSupport : null;
+  const nearResistance = isReasonable(sr.nearestResistance) ? sr.nearestResistance : null;
+
+  // Entry: nearest support + 0.5% buffer, or current price - 3%
+  const targetEntry = nearSupport
+    ? parseFloat((nearSupport * 1.005).toFixed(2))
+    : currentPrice > 0 ? parseFloat((currentPrice * 0.97).toFixed(2)) : null;
+
+  // Exit: nearest resistance - 0.5% buffer, or current price + 5%
+  const targetExit = nearResistance
+    ? parseFloat((nearResistance * 0.995).toFixed(2))
+    : currentPrice > 0 ? parseFloat((currentPrice * 1.05).toFixed(2)) : null;
+
+  // Stop loss: support - 3%, or current price - 7%
+  const stopLoss = nearSupport
+    ? parseFloat((nearSupport * 0.97).toFixed(2))
+    : currentPrice > 0 ? parseFloat((currentPrice * 0.93).toFixed(2)) : null;
 
   return {
     overall: parseFloat(clampedOverall.toFixed(3)),
