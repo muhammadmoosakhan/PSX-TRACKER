@@ -55,7 +55,20 @@ A personal investment tracking app for the **Pakistan Stock Exchange (PSX)**. Tr
 - "Load More" pagination for performance
 - Mobile-optimized card layout
 
-### Business News (NEW)
+### Smart Advisor (NEW)
+- **AI-powered stock analysis** — enter any PSX symbol for instant advisory
+- **4-layer scoring engine**: Technical indicators + News sentiment + Trend forecasting + Market context
+- **Advisory signals**: Strong Buy / Buy / Hold / Sell / Strong Sell with confidence %
+- **Price targets**: Entry point, Take Profit, and Stop Loss based on support/resistance
+- **Trend prediction**: 5-day, 30-day, 90-day linear regression with next-day price estimate
+- **News sentiment**: FinBERT AI (HuggingFace) with keyword fallback — analyzes Pakistani business headlines
+- **Technical composite**: TradingView-style scoring (RSI, MACD, Stochastic, SMA signals)
+- **Quick picks**: One-tap analysis for popular stocks (ENGRO, HUBC, OGDC, LUCK, etc.)
+- **Moving average crossovers**: Golden Cross / Death Cross detection
+- **Support/resistance**: Auto-detected from price history
+- Zero dependencies — pure TypeScript math, runs on Vercel serverless
+
+### Business News
 - Aggregated business news from **4 Pakistani sources**: Dawn, Express Tribune, Business Recorder, Profit
 - **Hero carousel** — featured stories with full-width images, headline overlay, source badge, auto-rotate
 - **Source filter tabs** — ALL NEWS | DAWN | TRIBUNE | RECORDER | PROFIT (instant client-side switching)
@@ -128,6 +141,7 @@ Each stock has a dedicated detail page (`/stocks/[symbol]`) with **6 tabs**:
 | PDF Export | jsPDF + jspdf-autotable |
 | Icons | Lucide React |
 | Fonts | Plus Jakarta Sans, DM Sans, JetBrains Mono |
+| Sentiment AI | HuggingFace FinBERT (free tier) |
 | PSX Data | dps.psx.com.pk (free, no API key) |
 | Hosting | Vercel |
 
@@ -314,8 +328,10 @@ src/
 │   ├── forgot-password/page.tsx    # Password reset
 │   ├── auth/callback/route.ts      # Auth redirect handler
 │   ├── news/page.tsx               # Business news aggregator (4 sources)
+│   ├── advisor/page.tsx            # Smart Advisor (AI stock analysis)
 │   ├── api/psx/market/route.ts     # PSX market data API
 │   ├── api/psx/news/route.ts       # RSS news aggregator API
+│   ├── api/psx/advisor/[symbol]/route.ts  # Per-stock advisory API
 │   ├── api/psx/indices/route.ts    # PSX indices API
 │   ├── api/psx/indices/[index]/route.ts  # Index intraday data
 │   ├── api/psx/history/[symbol]/route.ts
@@ -335,7 +351,7 @@ src/
 │   ├── risk/        # RiskMeter, ConcentrationAlert, SectorBreakdown
 │   └── settings/    # TwoFactorSetup, ProfileSection
 ├── hooks/           # useAuth, useTrades, usePortfolio, etc.
-├── lib/             # supabase, calculations, formatters, psx, stock-logos, email, technicals, news-sources
+├── lib/             # supabase, calculations, formatters, psx, stock-logos, email, technicals, news-sources, sentiment, trend, advisor
 ├── types/           # TypeScript interfaces
 └── middleware.ts     # Route protection
 ```

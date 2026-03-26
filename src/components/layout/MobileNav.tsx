@@ -10,6 +10,7 @@ import {
   Activity,
   LineChart,
   Newspaper,
+  Brain,
   Shield,
 } from 'lucide-react';
 import Avatar from '@/components/ui/Avatar';
@@ -22,6 +23,7 @@ const tabs = [
   { label: 'Market', href: '/market', icon: Activity },
   { label: 'Stocks', href: '/stocks', icon: LineChart },
   { label: 'News', href: '/news', icon: Newspaper },
+  { label: 'Advisor', href: '/advisor', icon: Brain },
   { label: 'Portfolio', href: '/portfolio', icon: Briefcase },
   { label: 'Analysis', href: '/analysis', icon: BarChart3 },
   { label: 'Risk', href: '/risk', icon: Shield },

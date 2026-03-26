@@ -14,6 +14,7 @@
 - `GET /api/psx/company/[symbol]` — profile + fundamentals + announcements (Fund/News/Profile tabs)
 - `GET /api/psx/indices` + `/api/psx/indices/[index]` — market indices
 - `GET /api/psx/news?source=all|dawn|tribune|recorder|profit` — aggregated business news from 4 RSS feeds
+- `GET /api/psx/advisor/[symbol]` — AI advisory (technical + sentiment + trend composite score)
 
 ## Key Files
 - `src/app/stocks/[symbol]/page.tsx` — stock detail (6 tabs: Live, Fundamentals, Technicals, News, Profile, Peers)
@@ -23,6 +24,9 @@
 - `src/lib/psx.ts` — market data fetcher/parser
 - `src/lib/psx-companies.ts` — static symbol→name map (~380 entries)
 - `src/lib/news-sources.ts` — news source configs (RSS URLs, colors, logos)
+- `src/lib/sentiment.ts` — keyword lexicon + HuggingFace FinBERT sentiment analysis
+- `src/lib/trend.ts` — linear regression, MA crossovers, support/resistance detection
+- `src/lib/advisor.ts` — composite advisory scoring engine (4 layers)
 - `src/lib/technicals.ts` — RSI, MACD, Stochastic, SMA, Pivot Points
 - `src/types/index.ts` — all TypeScript interfaces
 
