@@ -68,6 +68,61 @@ A personal investment tracking app for the **Pakistan Stock Exchange (PSX)**. Tr
 - **Support/resistance**: Auto-detected from price history
 - Zero dependencies — pure TypeScript math, runs on Vercel serverless
 
+#### How the Advisory Score Works
+
+```
+Final Score = (0.35 × Technical) + (0.25 × Sentiment) + (0.25 × Trend) + (0.15 × Context)
+```
+
+| Score Range | Label | Meaning |
+|-------------|-------|---------|
+| > +0.4 | **Strong Buy** | 3+ signals strongly agree bullish |
+| +0.15 to +0.4 | **Buy** | Most signals lean bullish |
+| -0.15 to +0.15 | **Hold** | Signals are mixed/neutral |
+| -0.4 to -0.15 | **Sell** | Most signals lean bearish |
+| < -0.4 | **Strong Sell** | 3+ signals strongly agree bearish |
+
+**Layer 1 — Technical Composite (35%)**
+TradingView-style scoring: counts BUY vs SELL across RSI(14), Stochastic %K(14,3,3), MACD(12,26,9), and SMA(5/15/30/50/100/150). Each indicator votes +1 (BUY) or -1 (SELL). Final = `(BUY - SELL) / total`.
+
+| Indicator | BUY when | SELL when |
+|-----------|----------|-----------|
+| RSI (14) | < 30 (oversold) | > 70 (overbought) |
+| Stochastic %K | < 20 | > 80 |
+| MACD | MACD line > Signal line | MACD line < Signal line |
+| SMA (6 periods) | Price > SMA | Price < SMA |
+
+**Layer 2 — News Sentiment (25%)**
+Two-tier system: FinBERT AI (~85% accuracy on financial text) as primary, keyword lexicon (150 bullish + 200 bearish terms with negation handling) as fallback. Scores headlines from Dawn, Tribune, Recorder, Profit filtered by stock/sector relevance.
+
+**Layer 3 — Trend Forecasting (25%)**
+Linear regression on 5/30/90-day windows with R² confidence. Detects Golden Cross (SMA50 > SMA200 = bullish) and Death Cross (bearish). Next-day price estimate with 95% confidence interval.
+
+**Layer 4 — Market Context (15%)**
+Sector correlation factors. Extensible to USD/PKR and oil price signals.
+
+#### Price Target Methodology
+
+| Target | Based on |
+|--------|----------|
+| Entry | Nearest support level + 0.5% buffer |
+| Take Profit | Nearest resistance level - 0.5% buffer |
+| Stop Loss | Nearest support - 3% (or price - 7% if no support) |
+
+Support/resistance auto-detected from local min/max peaks over 120 days, clustered within 2%.
+
+#### Accuracy & Limitations
+
+| Component | Reliability | Notes |
+|-----------|-------------|-------|
+| Technical composite | Solid (industry standard) | Same as TradingView — lagging, confirms trends |
+| FinBERT sentiment | Good (~85%) | Pre-trained on financial English; Pakistani phrasing may differ |
+| Keyword sentiment | Fair (~60-70%) | Misses nuance and context |
+| Trend regression | Direction useful, exact prices approximate | R² < 0.3 means low confidence |
+| Price targets | Approximation | Works best for range-bound stocks |
+
+> **Disclaimer:** This is for educational purposes only. Not financial advice. Always do your own research before investing.
+
 ### Business News
 - Aggregated business news from **4 Pakistani sources**: Dawn, Express Tribune, Business Recorder, Profit
 - **Hero carousel** — featured stories with full-width images, headline overlay, source badge, auto-rotate
