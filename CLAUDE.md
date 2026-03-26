@@ -13,12 +13,16 @@
 - `GET /api/psx/history/[symbol]` — EOD chart data (Live, Technicals tabs)
 - `GET /api/psx/company/[symbol]` — profile + fundamentals + announcements (Fund/News/Profile tabs)
 - `GET /api/psx/indices` + `/api/psx/indices/[index]` — market indices
+- `GET /api/psx/news?source=all|dawn|tribune|recorder|profit` — aggregated business news from 4 RSS feeds
 
 ## Key Files
 - `src/app/stocks/[symbol]/page.tsx` — stock detail (6 tabs: Live, Fundamentals, Technicals, News, Profile, Peers)
+- `src/app/news/page.tsx` — business news aggregator (4 sources, hero carousel, source tabs)
+- `src/app/api/psx/news/route.ts` — RSS feed aggregator (Dawn, Tribune, Recorder, Profit)
 - `src/app/api/psx/company/[symbol]/route.ts` — PSX HTML scraper (profile, fundamentals, announcements)
 - `src/lib/psx.ts` — market data fetcher/parser
 - `src/lib/psx-companies.ts` — static symbol→name map (~380 entries)
+- `src/lib/news-sources.ts` — news source configs (RSS URLs, colors, logos)
 - `src/lib/technicals.ts` — RSI, MACD, Stochastic, SMA, Pivot Points
 - `src/types/index.ts` — all TypeScript interfaces
 

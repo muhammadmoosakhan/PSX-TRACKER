@@ -16,6 +16,7 @@ import {
   LogOut,
   Activity,
   LineChart,
+  Newspaper,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import Avatar from '@/components/ui/Avatar';
@@ -29,6 +30,7 @@ const navItems = [
   { label: 'Analysis', href: '/analysis', icon: BarChart3 },
   { label: 'Market', href: '/market', icon: Activity },
   { label: 'Stocks', href: '/stocks', icon: LineChart },
+  { label: 'News', href: '/news', icon: Newspaper },
   { label: 'Risk', href: '/risk', icon: Shield },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];

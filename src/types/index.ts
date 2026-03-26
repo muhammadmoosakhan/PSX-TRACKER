@@ -192,6 +192,35 @@ export interface IndexTickPoint {
   volume: number;
 }
 
+// ============================================
+// News Types
+// ============================================
+
+export interface NewsArticle {
+  id: string;
+  title: string;
+  description: string;
+  link: string;
+  imageUrl: string | null;
+  source: NewsSourceKey;
+  sourceName: string;
+  pubDate: string;
+  category?: string;
+  author?: string;
+}
+
+export type NewsSourceKey = 'all' | 'dawn' | 'tribune' | 'recorder' | 'profit';
+
+export interface NewsSourceConfig {
+  key: NewsSourceKey;
+  name: string;
+  shortName: string;
+  rssUrl: string;
+  color: string;
+  icon: string;
+  homepage: string;
+}
+
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 export interface AppSettings extends SettingsMap {

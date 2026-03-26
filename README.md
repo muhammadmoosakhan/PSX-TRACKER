@@ -55,7 +55,17 @@ A personal investment tracking app for the **Pakistan Stock Exchange (PSX)**. Tr
 - "Load More" pagination for performance
 - Mobile-optimized card layout
 
-### Stock Detail Page (NEW)
+### Business News (NEW)
+- Aggregated business news from **4 Pakistani sources**: Dawn, Express Tribune, Business Recorder, Profit
+- **Hero carousel** — featured stories with full-width images, headline overlay, source badge, auto-rotate
+- **Source filter tabs** — ALL NEWS | DAWN | TRIBUNE | RECORDER | PROFIT (instant client-side switching)
+- **News cards** — thumbnail, headline, snippet, source logo, time ago, share button
+- **KSE100 ticker strip** — live index value between carousel and news feed
+- Click any article to open original source in new tab
+- 15-minute server-side RSS cache for fast loads
+- ~95 articles across all sources
+
+### Stock Detail Page
 Each stock has a dedicated detail page (`/stocks/[symbol]`) with **6 tabs**:
 
 - **Live** — Current price, intraday chart (1D/1M/6M/YTD/1Y/3Y/5Y), stats (volume, open, LDCP), latest quote (bid/ask), Day's Range slider, 52-Week Range slider, Circuit Breakers (±7.5%)
@@ -303,7 +313,9 @@ src/
 │   ├── signup/page.tsx             # Create account
 │   ├── forgot-password/page.tsx    # Password reset
 │   ├── auth/callback/route.ts      # Auth redirect handler
+│   ├── news/page.tsx               # Business news aggregator (4 sources)
 │   ├── api/psx/market/route.ts     # PSX market data API
+│   ├── api/psx/news/route.ts       # RSS news aggregator API
 │   ├── api/psx/indices/route.ts    # PSX indices API
 │   ├── api/psx/indices/[index]/route.ts  # Index intraday data
 │   ├── api/psx/history/[symbol]/route.ts
@@ -314,6 +326,7 @@ src/
 ├── components/
 │   ├── ui/          # Button, Card, Modal, Toast, etc.
 │   ├── layout/      # Sidebar, MobileNav, AppShell
+│   ├── news/        # NewsHeroCarousel, NewsSourceTabs, NewsCard, NewsTicker
 │   ├── charts/      # LineChart, BarChart, PieChart
 │   ├── dashboard/   # KPICard, RecentTrades, TopHoldings
 │   ├── trades/      # TradeForm, TradeTable, StockSearch
@@ -322,7 +335,7 @@ src/
 │   ├── risk/        # RiskMeter, ConcentrationAlert, SectorBreakdown
 │   └── settings/    # TwoFactorSetup, ProfileSection
 ├── hooks/           # useAuth, useTrades, usePortfolio, etc.
-├── lib/             # supabase, calculations, formatters, psx, stock-logos, email, technicals
+├── lib/             # supabase, calculations, formatters, psx, stock-logos, email, technicals, news-sources
 ├── types/           # TypeScript interfaces
 └── middleware.ts     # Route protection
 ```
