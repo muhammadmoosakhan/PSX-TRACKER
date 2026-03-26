@@ -216,7 +216,7 @@ export function findSupportResistance(prices: number[], windowSize: number = 5):
   };
 }
 
-// ---- Volatility (ATR-based) ----
+// ---- Volatility (ATR-based, with split/bonus outlier filtering) ----
 
 export function computeVolatility(
   highs: number[],
@@ -227,19 +227,24 @@ export function computeVolatility(
   const len = Math.min(highs.length, lows.length, closes.length);
   if (len < period + 1) return 0;
 
-  let atrSum = 0;
+  const trValues: number[] = [];
   for (let i = len - period; i < len; i++) {
-    const tr = Math.max(
+    let tr = Math.max(
       highs[i] - lows[i],
       Math.abs(highs[i] - closes[i - 1]),
       Math.abs(lows[i] - closes[i - 1])
     );
-    atrSum += tr;
+    // Cap individual day TR at 10% of close — filters stock split/bonus spikes
+    const maxTr = closes[i] * 0.10;
+    if (tr > maxTr && closes[i] > 0) tr = maxTr;
+    trValues.push(tr);
   }
 
-  const atr = atrSum / period;
+  const atr = trValues.reduce((s, v) => s + v, 0) / period;
   const lastPrice = closes[closes.length - 1];
-  return lastPrice > 0 ? parseFloat(((atr / lastPrice) * 100).toFixed(2)) : 0;
+  // Cap final volatility at 15%
+  const vol = lastPrice > 0 ? (atr / lastPrice) * 100 : 0;
+  return parseFloat(Math.min(15, vol).toFixed(2));
 }
 
 // ---- Master Trend Analysis ----
