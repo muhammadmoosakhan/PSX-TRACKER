@@ -512,45 +512,81 @@ function SettingsGroup({
         {title}
       </h3>
       <div className="space-y-3">
-        {fields.map((field) => {
-          const displayValue = ((settings[field.key] || 0) * field.multiplier).toFixed(
-            field.multiplier === 100 ? 2 : 0
-          );
-          return (
-            <div key={field.key} className="flex items-center justify-between gap-2 sm:gap-3">
-              <label className="text-sm flex-1 min-w-0 truncate" style={{ color: 'var(--text-secondary)' }}>
-                {field.label}
-              </label>
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                <input
-                  type="number"
-                  step={field.multiplier === 100 ? '0.01' : '1'}
-                  defaultValue={displayValue}
-                  onBlur={(e) => onUpdate(field.key, e.target.value, field.multiplier)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      onUpdate(field.key, (e.target as HTMLInputElement).value, field.multiplier);
-                    }
-                  }}
-                  className="w-20 sm:w-24 px-2.5 py-1.5 text-sm text-right rounded-[10px] outline-none transition-all focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-opacity-30"
-                  style={{
-                    background: 'var(--input-bg)',
-                    color: 'var(--text-primary)',
-                    border: '1px solid var(--border-light)',
-                    fontFamily: 'var(--font-mono)',
-                  }}
-                />
-                <span
-                  className="text-xs w-8 text-right flex-shrink-0"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  {field.unit}
-                </span>
-              </div>
-            </div>
-          );
-        })}
+        {fields.map((field) => (
+          <SettingsField
+            key={field.key}
+            field={field}
+            rawValue={settings[field.key] || 0}
+            onUpdate={onUpdate}
+          />
+        ))}
       </div>
     </Card>
+  );
+}
+
+function SettingsField({
+  field,
+  rawValue,
+  onUpdate,
+}: Readonly<{
+  field: SettingField;
+  rawValue: number;
+  onUpdate: (key: string, value: string, multiplier: number) => void;
+}>) {
+  const initialDisplay = (rawValue * field.multiplier).toFixed(field.multiplier === 100 ? 2 : 0);
+  const [localValue, setLocalValue] = useState(initialDisplay);
+  const [saving, setSaving] = useState(false);
+
+  // Sync local state when settings reload (e.g., page refresh or external update)
+  const prevRaw = useRef(rawValue);
+  if (prevRaw.current !== rawValue) {
+    prevRaw.current = rawValue;
+    const newDisplay = (rawValue * field.multiplier).toFixed(field.multiplier === 100 ? 2 : 0);
+    if (newDisplay !== localValue) {
+      setLocalValue(newDisplay);
+    }
+  }
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onUpdate(field.key, localValue, field.multiplier);
+    setSaving(false);
+  };
+
+  return (
+    <div className="flex items-center justify-between gap-2 sm:gap-3">
+      <label className="text-sm flex-1 min-w-0 truncate" style={{ color: 'var(--text-secondary)' }}>
+        {field.label}
+      </label>
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <input
+          type="number"
+          step={field.multiplier === 100 ? '0.01' : '1'}
+          value={localValue}
+          onChange={(e) => setLocalValue(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleSave();
+            }
+          }}
+          disabled={saving}
+          className="w-20 sm:w-24 px-2.5 py-1.5 text-sm text-right rounded-[10px] outline-none transition-all focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-opacity-30 disabled:opacity-50"
+          style={{
+            background: 'var(--input-bg)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-light)',
+            fontFamily: 'var(--font-mono)',
+          }}
+        />
+        <span
+          className="text-xs w-8 text-right flex-shrink-0"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          {field.unit}
+        </span>
+      </div>
+    </div>
   );
 }

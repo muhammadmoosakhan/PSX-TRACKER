@@ -5,7 +5,9 @@ import {
   Search, TrendingUp, TrendingDown, Minus, AlertTriangle,
   Target, ShieldCheck, BarChart3, Brain, Newspaper, Activity,
   ArrowUpCircle, ArrowDownCircle, Loader2, RefreshCw, Info,
+  MessageCircle,
 } from 'lucide-react';
+import StockChat from '@/components/advisor/StockChat';
 
 interface Advisory {
   symbol: string;
@@ -98,6 +100,7 @@ export default function AdvisorPage() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<Advisory | null>(null);
   const [error, setError] = useState('');
+  const [chatOpen, setChatOpen] = useState(false);
 
   const analyze = useCallback(async (symbol?: string) => {
     const s = (symbol || query).trim().toUpperCase();
@@ -442,6 +445,55 @@ export default function AdvisorPage() {
           </p>
         </div>
       )}
+
+      {/* Floating Chat Button */}
+      {data && (
+        <button
+          onClick={() => setChatOpen(true)}
+          className="fixed bottom-20 right-4 md:bottom-6 md:right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-95 z-30"
+          style={{ background: 'var(--accent-primary)' }}
+          aria-label="Open AI Assistant"
+        >
+          <MessageCircle size={24} className="text-white" />
+        </button>
+      )}
+
+      {/* Chat Panel */}
+      <StockChat
+        stockContext={data ? {
+          symbol: data.symbol,
+          name: data.name,
+          sector: data.sector,
+          currentPrice: data.currentPrice,
+          ldcp: data.ldcp,
+          advisory: {
+            label: data.advisory.label,
+            confidence: data.advisory.confidence * 100,
+            reasoning: data.advisory.reasoning,
+            suggestedAction: data.advisory.suggestedAction,
+            targetEntry: data.advisory.targetEntry,
+            targetExit: data.advisory.targetExit,
+            stopLoss: data.advisory.stopLoss,
+            riskLevel: data.advisory.riskLevel,
+          },
+          technicals: {
+            rsi: data.technicals.rsi,
+            macd: data.technicals.macd,
+            compositeScore: data.technicals.compositeScore * 100,
+          },
+          sentiment: {
+            label: data.sentiment.label,
+            score: data.sentiment.score,
+            headlines: data.sentiment.headlines,
+          },
+          trend: {
+            overallLabel: data.trend.overallLabel,
+            volatility: data.trend.volatility,
+          },
+        } : null}
+        isOpen={chatOpen}
+        onClose={() => setChatOpen(false)}
+      />
     </div>
   );
 }

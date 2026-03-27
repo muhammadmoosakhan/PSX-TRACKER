@@ -43,11 +43,24 @@ export function useSettings() {
 
   const updateSetting = useCallback(async (key: string, value: number) => {
     try {
+      // Get the current user's ID for RLS-compliant upsert
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('Cannot update setting: user not authenticated');
+        return false;
+      }
+
       const { error: err } = await supabase
         .from('settings')
-        .upsert({ key, value }, { onConflict: 'key' });
+        .upsert(
+          { user_id: user.id, key, value },
+          { onConflict: 'user_id,key' }
+        );
 
-      if (err) throw err;
+      if (err) {
+        console.error('Supabase upsert error:', err.message, err.details, err.hint);
+        throw err;
+      }
 
       setSettings((prev) => ({ ...prev, [key]: value }));
       return true;

@@ -54,23 +54,45 @@ export async function GET(
 
     // Parse news — filter headlines mentioning this stock/sector
     let relevantHeadlines: string[] = [];
+    let newsSourceType: 'stock-specific' | 'sector-related' | 'general-market' = 'general-market';
     if (newsRes.ok) {
       const nJson = await newsRes.json();
       const articles = nJson.articles || [];
-      const searchTerms = [upperSymbol.toLowerCase(), stockName.toLowerCase(), sector.toLowerCase()].filter(Boolean);
-      relevantHeadlines = articles
+      const stockTerms = [upperSymbol.toLowerCase(), stockName.toLowerCase()].filter(Boolean);
+      const sectorTerms = sector ? [sector.toLowerCase()] : [];
+      
+      // First try stock-specific news
+      const stockNews = articles
         .filter((a: { title: string; description: string }) => {
           const text = `${a.title} ${a.description}`.toLowerCase();
-          return searchTerms.some((t) => t.length > 2 && text.includes(t));
+          return stockTerms.some((t) => t.length > 2 && text.includes(t));
         })
         .map((a: { title: string }) => a.title)
         .slice(0, 15);
-
-      // If no stock-specific news, use general market news
-      if (relevantHeadlines.length < 3) {
-        relevantHeadlines = articles
-          .slice(0, 10)
-          .map((a: { title: string }) => a.title);
+      
+      if (stockNews.length >= 3) {
+        relevantHeadlines = stockNews;
+        newsSourceType = 'stock-specific';
+      } else {
+        // Try sector-related news
+        const sectorNews = articles
+          .filter((a: { title: string; description: string }) => {
+            const text = `${a.title} ${a.description}`.toLowerCase();
+            return sectorTerms.some((t) => t.length > 2 && text.includes(t));
+          })
+          .map((a: { title: string }) => a.title)
+          .slice(0, 10);
+        
+        if (sectorNews.length >= 3) {
+          relevantHeadlines = sectorNews;
+          newsSourceType = 'sector-related';
+        } else {
+          // Fall back to general market news
+          relevantHeadlines = articles
+            .slice(0, 10)
+            .map((a: { title: string }) => a.title);
+          newsSourceType = 'general-market';
+        }
       }
     }
 
@@ -148,6 +170,47 @@ export async function GET(
       volatilityPct,
     });
 
+    // Add stock-specific reasoning
+    const priceChange = ldcp > 0 ? ((currentPrice - ldcp) / ldcp) * 100 : 0;
+    const priceChangeStr = priceChange >= 0 ? `+${priceChange.toFixed(2)}%` : `${priceChange.toFixed(2)}%`;
+    advisory.reasoning.unshift(`${upperSymbol} @ PKR ${currentPrice.toFixed(2)} (${priceChangeStr} today)`);
+
+    // Add technical indicator values
+    if (rsi) {
+      advisory.reasoning.push(`RSI: ${rsi.value.toFixed(1)} (${rsi.signal})`);
+    }
+    if (macd) {
+      const macdDir = macd.histogram > 0 ? 'above' : 'below';
+      advisory.reasoning.push(`MACD histogram ${macdDir} zero (${macd.tradeSignal})`);
+    }
+
+    // Add volume analysis if available
+    const recentVolumes = historyData.slice(-10).map(d => d.volume);
+    const avgVolume = recentVolumes.reduce((a, b) => a + b, 0) / recentVolumes.length;
+    const latestVolume = historyData[historyData.length - 1]?.volume || 0;
+    if (avgVolume > 0 && latestVolume > 0) {
+      const volRatio = latestVolume / avgVolume;
+      if (volRatio > 1.5) {
+        advisory.reasoning.push(`Volume ${(volRatio).toFixed(1)}x above 10-day average — high activity`);
+      } else if (volRatio < 0.5) {
+        advisory.reasoning.push(`Volume ${(volRatio).toFixed(1)}x below average — low liquidity`);
+      }
+    }
+
+    // Add sector context if available
+    if (sector) {
+      advisory.reasoning.push(`Sector: ${sector}`);
+    }
+
+    // Add news source context
+    if (newsSourceType === 'general-market') {
+      advisory.reasoning.push(`News: General market sentiment (no ${upperSymbol}-specific news found)`);
+    } else if (newsSourceType === 'sector-related') {
+      advisory.reasoning.push(`News: ${sector} sector sentiment`);
+    } else {
+      advisory.reasoning.push(`News: ${upperSymbol}-specific headlines analyzed`);
+    }
+
     // Add data warning to reasoning if present
     if (dataWarning) {
       advisory.reasoning.push(dataWarning);
@@ -180,6 +243,7 @@ export async function GET(
         headlines: relevantHeadlines.slice(0, 5),
         positiveHits: sentimentResult.positiveHits,
         negativeHits: sentimentResult.negativeHits,
+        newsSourceType,
       },
       trend: {
         shortTerm: trendAnalysis.shortTerm,
@@ -197,7 +261,10 @@ export async function GET(
         },
       },
     }, {
-      headers: { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=1800' },
+      headers: {
+        'Cache-Control': 'private, s-maxage=300, stale-while-revalidate=600',
+        'Vary': 'x-symbol',
+      },
     });
   } catch (err) {
     console.error('Advisor error:', err);
