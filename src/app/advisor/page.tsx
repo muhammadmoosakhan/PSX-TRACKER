@@ -130,7 +130,11 @@ export default function AdvisorPage() {
   const quickPicks = ['ENGRO', 'HUBC', 'OGDC', 'LUCK', 'HBL', 'PSO', 'SYS', 'MEBL'];
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-4 pb-24 animate-[fade-in_0.3s_ease-out]">
+    <div 
+      className={`max-w-3xl mx-auto px-4 py-4 pb-24 animate-[fade-in_0.3s_ease-out] transition-all duration-300 ${
+        chatOpen ? 'lg:mr-[440px] lg:max-w-2xl' : ''
+      }`}
+    >
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <div className="w-10 h-10 rounded-[12px] flex items-center justify-center" style={{ background: 'var(--accent-primary)' }}>
