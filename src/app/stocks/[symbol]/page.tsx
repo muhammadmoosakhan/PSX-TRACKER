@@ -336,7 +336,7 @@ function FundRow({ label, desc, value, pct }: { label: string; desc?: string; va
 }
 
 /** Fundamentals content matching Investify's multi-column layout */
-function FundamentalsContent({ fundamentals: f }: { fundamentals: any }) {
+function FundamentalsContent({ fundamentals: f, announcements }: { fundamentals: any; announcements?: any[] }) {
   // Check if any section has data
   const hasEarnings = f.eps?.annual != null || f.eps?.lastQuarter != null || f.eps?.ytd != null || f.eps?.expected != null;
   const hasPE = f.pe?.annual != null || f.pe?.expected != null;
@@ -346,8 +346,38 @@ function FundamentalsContent({ fundamentals: f }: { fundamentals: any }) {
   const hasValuations = f.marketCap != null || f.bookValue != null || f.pbv != null || f.enterpriseValue != null;
   const hasHealth = f.currentRatio != null || f.quickRatio != null || f.debtToEquity != null || f.equityToAssets != null;
 
+  // Extract dividend history from announcements
+  const dividendHistory = useMemo(() => {
+    if (!announcements || announcements.length === 0) return [];
+    return announcements
+      .filter((a: any) => 
+        /dividend|bonus|cash\s+dividend|interim\s+dividend|final\s+dividend/i.test(a.title)
+      )
+      .slice(0, 10)
+      .map((a: any) => {
+        // Try to extract dividend amount from title
+        const amountMatch = a.title.match(/(?:Rs\.?|PKR)\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*%|\(D-?(\d+)\)|dividend\s*@?\s*(\d+(?:\.\d+)?)/i);
+        const amount = amountMatch ? (amountMatch[1] || amountMatch[2] || amountMatch[3] || amountMatch[4]) : null;
+        
+        // Determine dividend type
+        let type = 'Cash';
+        if (/bonus/i.test(a.title)) type = 'Bonus';
+        else if (/interim/i.test(a.title)) type = 'Interim';
+        else if (/final/i.test(a.title)) type = 'Final';
+        
+        return {
+          date: a.date,
+          title: a.title,
+          type,
+          amount: amount ? parseFloat(amount) : null,
+        };
+      });
+  }, [announcements]);
+  
+  const hasDividendHistory = dividendHistory.length > 0;
+
   const hasAnyData = hasEarnings || hasPE || hasMargins || hasReturns || hasDPS || hasValuations || hasHealth ||
-    f.earningGrowth != null || f.pegRatio != null || f.dividendYield != null;
+    f.earningGrowth != null || f.pegRatio != null || f.dividendYield != null || hasDividendHistory;
 
   if (!hasAnyData) return null;
 
@@ -451,6 +481,60 @@ function FundamentalsContent({ fundamentals: f }: { fundamentals: any }) {
           <FundRow label="Dividend Yield (%)" value={f.dividendYield} pct />
           <FundRow label="Dividend Cover" value={f.dividendCover} />
           <FundRow label="Payout Ratio (%)" value={f.payoutRatio} pct />
+        </div>
+      )}
+
+      {/* ---- DIVIDEND HISTORY ---- */}
+      {hasDividendHistory && (
+        <div className="mb-6">
+          <SectionHeader title="Dividend History" />
+          <div className="space-y-2">
+            {dividendHistory.map((d: any, i: number) => (
+              <div
+                key={i}
+                className="flex items-center justify-between py-2.5 px-3 rounded-[10px]"
+                style={{ 
+                  background: i % 2 === 0 ? 'var(--bg-secondary)' : 'transparent',
+                  border: '1px solid var(--border-light)'
+                }}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span
+                      className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      style={{
+                        background: d.type === 'Bonus' ? 'var(--accent-warning)' : 
+                                   d.type === 'Final' ? 'var(--accent-success)' :
+                                   d.type === 'Interim' ? 'var(--accent-primary)' : 'var(--accent-tertiary)',
+                        color: 'white'
+                      }}
+                    >
+                      {d.type}
+                    </span>
+                    <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                      {d.date}
+                    </span>
+                  </div>
+                  <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
+                    {d.title.length > 60 ? d.title.slice(0, 60) + '...' : d.title}
+                  </p>
+                </div>
+                {d.amount && (
+                  <div className="flex-shrink-0 ml-3 text-right">
+                    <span
+                      className="text-sm font-bold"
+                      style={{ color: 'var(--accent-success)', fontFamily: 'var(--font-mono)' }}
+                    >
+                      {d.type === 'Bonus' ? `${d.amount}%` : `Rs. ${d.amount}`}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] mt-2 text-center" style={{ color: 'var(--text-muted)' }}>
+            Showing last {dividendHistory.length} dividend announcements
+          </p>
         </div>
       )}
 
@@ -1001,7 +1085,7 @@ export default function StockDetailPage({
               <SkeletonBlock className="h-4 w-3/4" />
             </div>
           ) : companyData?.fundamentals ? (
-            <FundamentalsContent fundamentals={companyData.fundamentals} />
+            <FundamentalsContent fundamentals={companyData.fundamentals} announcements={companyData.announcements} />
           ) : (
             <EmptyTabState
               icon={BarChart3}
