@@ -40,12 +40,27 @@ export async function GET(
     if (marketRes.ok) {
       const mJson = await marketRes.json();
       const stocks = mJson.stocks || mJson.data || mJson;
-      const stock = Array.isArray(stocks) ? stocks.find((s: { symbol: string }) => s.symbol === upperSymbol) : null;
-      if (stock) {
-        currentPrice = stock.current_price || stock.current || 0;
-        ldcp = stock.ldcp || 0;
-        stockName = stock.name || upperSymbol;
-        sector = stock.sector || '';
+      if (Array.isArray(stocks)) {
+        // Try exact match first, then XD suffix (ex-dividend), then other suffixes
+        let stock = stocks.find((s: { symbol: string }) => s.symbol === upperSymbol);
+        if (!stock) {
+          // Try with XD suffix (ex-dividend)
+          stock = stocks.find((s: { symbol: string }) => s.symbol === `${upperSymbol}XD`);
+        }
+        if (!stock) {
+          // Try other common suffixes: NC (new certificate), XB (ex-bonus), XR (ex-rights)
+          const suffixes = ['NC', 'XB', 'XR', 'WU'];
+          for (const suffix of suffixes) {
+            stock = stocks.find((s: { symbol: string }) => s.symbol === `${upperSymbol}${suffix}`);
+            if (stock) break;
+          }
+        }
+        if (stock) {
+          currentPrice = stock.current_price || stock.current || 0;
+          ldcp = stock.ldcp || 0;
+          stockName = stock.name?.replace(/XD$|NC$|XB$|XR$|WU$/i, '').trim() || upperSymbol;
+          sector = stock.sector || '';
+        }
       }
     }
     if (currentPrice === 0 && historyData.length > 0) {

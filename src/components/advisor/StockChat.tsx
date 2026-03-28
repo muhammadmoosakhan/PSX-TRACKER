@@ -1,7 +1,66 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Brain, X, SendHorizontal, Sparkles, TrendingUp, AlertTriangle, Newspaper } from 'lucide-react';
+import { Brain, X, SendHorizontal, Sparkles, TrendingUp, AlertTriangle, Newspaper, Briefcase, Settings, PieChart } from 'lucide-react';
+
+interface PortfolioHolding {
+  symbol: string;
+  name: string;
+  quantity: number;
+  avgPrice: number;
+  currentPrice: number;
+  pnl: number;
+  pnlPct: number;
+}
+
+interface Trade {
+  symbol: string;
+  type: 'BUY' | 'SELL';
+  quantity: number;
+  rate: number;
+  date: string;
+}
+
+interface RiskMetrics {
+  stockConcentration: number;
+  sectorConcentration: number;
+  portfolioValue: number;
+  totalInvested: number;
+  unrealizedPnl: number;
+  realizedPnl: number;
+  topHolding?: { symbol: string; weight: number };
+  topSector?: { name: string; weight: number };
+}
+
+interface UserSettings {
+  brokerageRate?: number;
+  cvtRate?: number;
+  capitalGainsTax?: number;
+  totalCapital?: number;
+  usedCapital?: number;
+  maxStockConcentration?: number;
+  maxSectorConcentration?: number;
+}
+
+interface NewsArticle {
+  title: string;
+  source: string;
+  pubDate: string;
+}
+
+interface UserContext {
+  portfolio?: PortfolioHolding[];
+  recentTrades?: Trade[];
+  risk?: RiskMetrics;
+  watchlist?: string[];
+  settings?: UserSettings;
+}
+
+interface NewsContext {
+  headlines: string[];
+  source: string;
+  articles?: NewsArticle[];
+}
 
 interface StockChatProps {
   stockContext: {
@@ -36,6 +95,8 @@ interface StockChatProps {
       volatility?: number;
     };
   } | null;
+  userContext?: UserContext;
+  newsContext?: NewsContext;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -46,10 +107,12 @@ interface Message {
 }
 
 const quickActions = [
-  { label: 'Explain this analysis', icon: Sparkles, message: 'Can you explain the current analysis and what it means for this stock?' },
+  { label: 'Explain analysis', icon: Sparkles, message: 'Can you explain the current analysis and what it means for this stock?' },
   { label: 'Should I buy?', icon: TrendingUp, message: 'Based on the current data, should I consider buying this stock?' },
-  { label: 'What are the risks?', icon: AlertTriangle, message: 'What are the key risks I should be aware of for this stock?' },
-  { label: 'News impact?', icon: Newspaper, message: 'How might recent news affect this stock\'s performance?' },
+  { label: 'Portfolio risk?', icon: PieChart, message: 'Analyze my portfolio risk. Am I over-concentrated in any stock or sector?' },
+  { label: 'My P&L?', icon: Briefcase, message: 'Give me a summary of my portfolio performance and P&L.' },
+  { label: 'News impact?', icon: Newspaper, message: 'How might recent news affect this stock and the market?' },
+  { label: 'Tax impact?', icon: Settings, message: 'Based on my settings, what would be the tax impact if I sell my holdings?' },
 ];
 
 function TypingIndicator() {
@@ -72,6 +135,121 @@ function TypingIndicator() {
   );
 }
 
+// Simple markdown parser for chat messages
+function parseMarkdown(text: string): React.ReactNode[] {
+  const elements: React.ReactNode[] = [];
+  let key = 0;
+  
+  // Split by lines
+  const lines = text.split('\n');
+  let inList = false;
+  let listItems: React.ReactNode[] = [];
+  let listType: 'ul' | 'ol' = 'ul';
+  
+  const flushList = () => {
+    if (listItems.length > 0) {
+      if (listType === 'ul') {
+        elements.push(
+          <ul key={`list-${key++}`} className="list-disc list-inside my-2 space-y-1">
+            {listItems}
+          </ul>
+        );
+      } else {
+        elements.push(
+          <ol key={`list-${key++}`} className="list-decimal list-inside my-2 space-y-1">
+            {listItems}
+          </ol>
+        );
+      }
+      listItems = [];
+      inList = false;
+    }
+  };
+  
+  const parseInline = (line: string): React.ReactNode[] => {
+    const parts: React.ReactNode[] = [];
+    const regex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(`(.+?)`)/g;
+    let lastIndex = 0;
+    let match;
+    let partKey = 0;
+    
+    while ((match = regex.exec(line)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(<span key={`t-${partKey++}`}>{line.slice(lastIndex, match.index)}</span>);
+      }
+      
+      if (match[1]) {
+        parts.push(<strong key={`b-${partKey++}`} className="font-semibold">{match[2]}</strong>);
+      } else if (match[3]) {
+        parts.push(<em key={`i-${partKey++}`}>{match[4]}</em>);
+      } else if (match[5]) {
+        parts.push(
+          <code key={`c-${partKey++}`} className="px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--accent-primary)] font-mono text-xs">
+            {match[6]}
+          </code>
+        );
+      }
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    if (lastIndex < line.length) {
+      parts.push(<span key={`t-${partKey++}`}>{line.slice(lastIndex)}</span>);
+    }
+    
+    return parts.length > 0 ? parts : [line];
+  };
+  
+  lines.forEach((line, lineIndex) => {
+    const trimmed = line.trim();
+    
+    // Check for bullet points
+    if (trimmed.startsWith('* ') || trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
+      if (!inList || listType !== 'ul') {
+        flushList();
+        inList = true;
+        listType = 'ul';
+      }
+      const content = trimmed.slice(2);
+      listItems.push(<li key={`li-${key++}`}>{parseInline(content)}</li>);
+      return;
+    }
+    
+    // Check for numbered lists
+    const numberedMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
+    if (numberedMatch) {
+      if (!inList || listType !== 'ol') {
+        flushList();
+        inList = true;
+        listType = 'ol';
+      }
+      listItems.push(<li key={`li-${key++}`}>{parseInline(numberedMatch[2])}</li>);
+      return;
+    }
+    
+    // Not a list item, flush any pending list
+    flushList();
+    
+    // Empty line = paragraph break
+    if (trimmed === '') {
+      elements.push(<div key={`br-${key++}`} className="h-2" />);
+      return;
+    }
+    
+    // Regular line with inline formatting
+    elements.push(
+      <p key={`p-${key++}`} className="mb-1">
+        {parseInline(line)}
+      </p>
+    );
+  });
+  
+  // Flush any remaining list
+  flushList();
+  
+  return elements;
+}
+
 function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === 'user';
   
@@ -85,13 +263,15 @@ function MessageBubble({ message }: { message: Message }) {
         }`}
         style={{ fontFamily: 'var(--font-body)' }}
       >
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+        <div className="text-sm leading-relaxed">
+          {isUser ? message.content : parseMarkdown(message.content)}
+        </div>
       </div>
     </div>
   );
 }
 
-export default function StockChat({ stockContext, isOpen, onClose }: StockChatProps) {
+export default function StockChat({ stockContext, userContext, newsContext, isOpen, onClose }: StockChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -129,6 +309,21 @@ export default function StockChat({ stockContext, isOpen, onClose }: StockChatPr
       const advisoryLabel = stockContext.advisory?.label || 'Pending';
       const confidence = stockContext.advisory?.confidence || 0;
       
+      // Build portfolio summary if available
+      let portfolioSummary = '';
+      if (userContext?.portfolio && userContext.portfolio.length > 0) {
+        const totalValue = userContext.risk?.portfolioValue || 0;
+        const totalPnl = userContext.risk?.unrealizedPnl || 0;
+        const holdingCount = userContext.portfolio.length;
+        portfolioSummary = `\n\n📊 Your Portfolio: ${holdingCount} holdings | Value: PKR ${totalValue.toLocaleString()} | P&L: ${totalPnl >= 0 ? '+' : ''}PKR ${totalPnl.toLocaleString()}`;
+        
+        // Check if user holds this stock
+        const holding = userContext.portfolio.find(h => h.symbol === stockContext.symbol);
+        if (holding) {
+          portfolioSummary += `\n📍 You hold ${holding.quantity} shares of ${stockContext.symbol} (P&L: ${holding.pnl >= 0 ? '+' : ''}${holding.pnlPct.toFixed(2)}%)`;
+        }
+      }
+      
       const welcomeMessage: Message = {
         role: 'assistant',
         content: `👋 Hi! I'm your PSX Assistant. I've analyzed **${stockContext.symbol}** (${stockContext.name}).
@@ -136,15 +331,15 @@ export default function StockChat({ stockContext, isOpen, onClose }: StockChatPr
 Current advisory: **${advisoryLabel}** with ${confidence}% confidence.
 
 Current price: PKR ${stockContext.currentPrice?.toLocaleString() || 'N/A'} (LDCP: ${stockContext.ldcp?.toLocaleString() || 'N/A'})
-Sector: ${stockContext.sector || 'N/A'}
+Sector: ${stockContext.sector || 'N/A'}${portfolioSummary}
 
-How can I help you understand this analysis?`
+I have full context of your portfolio, trades, settings, and latest market news. How can I help?`
       };
       
       setMessages([welcomeMessage]);
       setHasShownWelcome(true);
     }
-  }, [isOpen, stockContext, hasShownWelcome]);
+  }, [isOpen, stockContext, userContext, hasShownWelcome]);
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || loading) return;
@@ -204,6 +399,8 @@ How can I help you understand this analysis?`
       const requestBody = {
         messages: [...chatHistory, { role: 'user' as const, content: content.trim() }],
         stockContext: cleanContext,
+        userContext: userContext || undefined,
+        newsContext: newsContext || undefined,
       };
       
       const res = await fetch('/api/chat', {

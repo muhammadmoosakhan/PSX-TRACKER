@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Search, TrendingUp, TrendingDown, Minus, AlertTriangle,
   Target, ShieldCheck, BarChart3, Brain, Newspaper, Activity,
@@ -8,6 +8,10 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import StockChat from '@/components/advisor/StockChat';
+import { useTrades } from '@/hooks/useTrades';
+import { useSettings } from '@/hooks/useSettings';
+import { usePortfolio } from '@/hooks/usePortfolio';
+import { useMarketData } from '@/hooks/useMarketData';
 
 interface Advisory {
   symbol: string;
@@ -101,6 +105,108 @@ export default function AdvisorPage() {
   const [data, setData] = useState<Advisory | null>(null);
   const [error, setError] = useState('');
   const [chatOpen, setChatOpen] = useState(false);
+  const [newsArticles, setNewsArticles] = useState<{ title: string; source: string; pubDate: string }[]>([]);
+
+  // Fetch user data for chatbot context
+  const { trades } = useTrades();
+  const { settings } = useSettings();
+  const { stocks, getPriceMap } = useMarketData();
+  const priceMap = useMemo(() => getPriceMap(), [getPriceMap]);
+  const { holdings, sectorAllocation, summary } = usePortfolio(trades, priceMap);
+
+  // Fetch news for chatbot context
+  useEffect(() => {
+    async function fetchNews() {
+      try {
+        const res = await fetch('/api/psx/news?source=all');
+        if (res.ok) {
+          const data = await res.json();
+          const articles = (data.articles || []).slice(0, 15).map((a: { title: string; source: string; pubDate: string }) => ({
+            title: a.title,
+            source: a.source,
+            pubDate: a.pubDate,
+          }));
+          setNewsArticles(articles);
+        }
+      } catch (e) {
+        console.error('Failed to fetch news for chatbot:', e);
+      }
+    }
+    fetchNews();
+  }, []);
+
+  // Build user context for chatbot
+  const userContext = useMemo(() => {
+    // Portfolio holdings - map from app PortfolioHolding to chat interface
+    const portfolio = holdings.map(h => ({
+      symbol: h.symbol,
+      name: h.stock_name || h.symbol,
+      quantity: h.quantity_held,
+      avgPrice: h.avg_buy_price,
+      currentPrice: h.current_price,
+      pnl: h.unrealized_pl,
+      pnlPct: h.unrealized_pl_pct * 100,
+    }));
+
+    // Recent trades (last 10)
+    const recentTrades = trades.slice(0, 10).map(t => ({
+      symbol: t.symbol,
+      type: t.trade_type as 'BUY' | 'SELL',
+      quantity: t.quantity,
+      rate: t.rate_per_share,
+      date: t.trade_date,
+    }));
+
+    // Risk metrics
+    const topHolding = holdings.length > 0 
+      ? holdings.reduce((max, h) => h.market_value > max.market_value ? h : max, holdings[0])
+      : null;
+    const topSector = sectorAllocation.length > 0
+      ? sectorAllocation.reduce((max, s) => s.weight_pct > max.weight_pct ? s : max, sectorAllocation[0])
+      : null;
+
+    const risk = {
+      stockConcentration: topHolding && summary.totalValue > 0 
+        ? (topHolding.market_value / summary.totalValue) * 100 
+        : 0,
+      sectorConcentration: topSector?.weight_pct || 0,
+      portfolioValue: summary.totalValue,
+      totalInvested: summary.totalInvested,
+      unrealizedPnl: summary.totalPL,
+      realizedPnl: 0, // Would need to track this separately
+      topHolding: topHolding ? { symbol: topHolding.symbol, weight: (topHolding.market_value / summary.totalValue) * 100 } : undefined,
+      topSector: topSector ? { name: topSector.sector, weight: topSector.weight_pct } : undefined,
+    };
+
+    // User settings
+    const userSettings = {
+      brokerageRate: settings.brokerage_rate,
+      cvtRate: settings.cvt_rate,
+      capitalGainsTax: settings.cgt_rate_under_1y,
+      totalCapital: settings.capital_available,
+      usedCapital: summary.totalInvested,
+      maxStockConcentration: settings.stock_warning,
+      maxSectorConcentration: settings.sector_warning,
+    };
+
+    // Watchlist (symbols user is tracking but not holding)
+    const watchlist: string[] = [];
+
+    return {
+      portfolio,
+      recentTrades,
+      risk,
+      watchlist,
+      settings: userSettings,
+    };
+  }, [holdings, trades, sectorAllocation, summary, settings]);
+
+  // Build news context for chatbot
+  const newsContext = useMemo(() => ({
+    headlines: newsArticles.map(a => a.title),
+    source: 'all',
+    articles: newsArticles,
+  }), [newsArticles]);
 
   const analyze = useCallback(async (symbol?: string) => {
     const s = (symbol || query).trim().toUpperCase();
@@ -495,6 +601,8 @@ export default function AdvisorPage() {
             volatility: data.trend.volatility,
           },
         } : null}
+        userContext={userContext}
+        newsContext={newsContext}
         isOpen={chatOpen}
         onClose={() => setChatOpen(false)}
       />

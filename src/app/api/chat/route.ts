@@ -48,15 +48,71 @@ interface StockContext {
   trend?: StockTrend;
 }
 
+interface NewsArticle {
+  title: string;
+  source: string;
+  pubDate: string;
+  link?: string;
+}
+
 interface NewsContext {
   headlines: string[];
   source: string;
+  articles?: NewsArticle[];
+}
+
+interface PortfolioHolding {
+  symbol: string;
+  name: string;
+  quantity: number;
+  avgPrice: number;
+  currentPrice: number;
+  pnl: number;
+  pnlPct: number;
+}
+
+interface Trade {
+  symbol: string;
+  type: 'BUY' | 'SELL';
+  quantity: number;
+  rate: number;
+  date: string;
+}
+
+interface RiskMetrics {
+  stockConcentration: number;
+  sectorConcentration: number;
+  portfolioValue: number;
+  totalInvested: number;
+  unrealizedPnl: number;
+  realizedPnl: number;
+  topHolding?: { symbol: string; weight: number };
+  topSector?: { name: string; weight: number };
+}
+
+interface UserSettings {
+  brokerageRate?: number;
+  cvtRate?: number;
+  capitalGainsTax?: number;
+  totalCapital?: number;
+  usedCapital?: number;
+  maxStockConcentration?: number;
+  maxSectorConcentration?: number;
+}
+
+interface UserContext {
+  portfolio?: PortfolioHolding[];
+  recentTrades?: Trade[];
+  risk?: RiskMetrics;
+  watchlist?: string[];
+  settings?: UserSettings;
 }
 
 interface ChatRequest {
   messages: ChatMessage[];
   stockContext?: StockContext;
   newsContext?: NewsContext;
+  userContext?: UserContext;
 }
 
 // HuggingFace API response types
@@ -82,9 +138,101 @@ interface HFError {
   error: string;
 }
 
-function buildSystemPrompt(stockContext?: StockContext, newsContext?: NewsContext): string {
+function buildSystemPrompt(stockContext?: StockContext, newsContext?: NewsContext, userContext?: UserContext): string {
   let prompt = `You are a PSX (Pakistan Stock Exchange) investment analyst assistant.
-You help users understand stock analysis, news sentiment, and market trends.`;
+You help users understand stock analysis, news sentiment, market trends, and provide personalized portfolio advice.`;
+
+  // User's Portfolio Context
+  if (userContext) {
+    const { portfolio, recentTrades, risk, watchlist, settings } = userContext;
+
+    if (settings) {
+      prompt += `
+
+USER'S TRADING SETTINGS:`;
+      if (settings.totalCapital !== undefined) {
+        prompt += `
+- Total Capital: PKR ${settings.totalCapital.toLocaleString()}`;
+      }
+      if (settings.usedCapital !== undefined) {
+        prompt += `
+- Used Capital: PKR ${settings.usedCapital.toLocaleString()}`;
+        if (settings.totalCapital) {
+          const availableCapital = settings.totalCapital - settings.usedCapital;
+          prompt += `
+- Available Capital: PKR ${availableCapital.toLocaleString()}`;
+        }
+      }
+      if (settings.brokerageRate !== undefined) {
+        prompt += `
+- Brokerage Rate: ${settings.brokerageRate}%`;
+      }
+      if (settings.cvtRate !== undefined) {
+        prompt += `
+- CVT Rate: ${settings.cvtRate}%`;
+      }
+      if (settings.capitalGainsTax !== undefined) {
+        prompt += `
+- Capital Gains Tax: ${settings.capitalGainsTax}%`;
+      }
+      if (settings.maxStockConcentration !== undefined) {
+        prompt += `
+- Max Stock Concentration Limit: ${settings.maxStockConcentration}%`;
+      }
+      if (settings.maxSectorConcentration !== undefined) {
+        prompt += `
+- Max Sector Concentration Limit: ${settings.maxSectorConcentration}%`;
+      }
+    }
+
+    if (portfolio && portfolio.length > 0) {
+      prompt += `
+
+USER'S PORTFOLIO (${portfolio.length} holdings):`;
+      portfolio.forEach((h, i) => {
+        const pnlSign = h.pnl >= 0 ? '+' : '';
+        prompt += `
+${i + 1}. ${h.symbol} (${h.name}): ${h.quantity} shares @ PKR ${h.avgPrice.toFixed(2)} avg
+   Current: PKR ${h.currentPrice.toFixed(2)} | P&L: ${pnlSign}PKR ${h.pnl.toFixed(2)} (${pnlSign}${h.pnlPct.toFixed(2)}%)`;
+      });
+    }
+
+    if (risk) {
+      prompt += `
+
+USER'S RISK METRICS:
+- Portfolio Value: PKR ${risk.portfolioValue.toLocaleString()}
+- Total Invested: PKR ${risk.totalInvested.toLocaleString()}
+- Unrealized P&L: PKR ${risk.unrealizedPnl.toLocaleString()}
+- Realized P&L: PKR ${risk.realizedPnl.toLocaleString()}
+- Stock Concentration: ${risk.stockConcentration.toFixed(1)}%
+- Sector Concentration: ${risk.sectorConcentration.toFixed(1)}%`;
+      if (risk.topHolding) {
+        prompt += `
+- Top Holding: ${risk.topHolding.symbol} (${risk.topHolding.weight.toFixed(1)}% of portfolio)`;
+      }
+      if (risk.topSector) {
+        prompt += `
+- Top Sector: ${risk.topSector.name} (${risk.topSector.weight.toFixed(1)}% of portfolio)`;
+      }
+    }
+
+    if (recentTrades && recentTrades.length > 0) {
+      prompt += `
+
+USER'S RECENT TRADES (last ${recentTrades.length}):`;
+      recentTrades.slice(0, 10).forEach((t, i) => {
+        prompt += `
+${i + 1}. ${t.date}: ${t.type} ${t.quantity} ${t.symbol} @ PKR ${t.rate.toFixed(2)}`;
+      });
+    }
+
+    if (watchlist && watchlist.length > 0) {
+      prompt += `
+
+USER'S WATCHLIST: ${watchlist.join(', ')}`;
+    }
+  }
 
   if (stockContext) {
     const { symbol, name, sector, currentPrice, change, changePct, advisory, technicals, sentiment, trend } = stockContext;
@@ -164,11 +312,33 @@ ${advisory.reasoning.map(r => `• ${r}`).join('\n')}`;
     }
   }
 
-  if (newsContext && newsContext.headlines.length > 0) {
-    prompt += `
+  if (newsContext) {
+    if (newsContext.articles && newsContext.articles.length > 0) {
+      prompt += `
+
+LATEST PAKISTAN BUSINESS NEWS:`;
+      // Group by source
+      const bySource: Record<string, NewsArticle[]> = {};
+      newsContext.articles.forEach(a => {
+        if (!bySource[a.source]) bySource[a.source] = [];
+        bySource[a.source].push(a);
+      });
+      
+      Object.entries(bySource).forEach(([source, articles]) => {
+        prompt += `
+
+${source.toUpperCase()} NEWS:`;
+        articles.slice(0, 3).forEach(a => {
+          prompt += `
+• ${a.title} (${a.pubDate})`;
+        });
+      });
+    } else if (newsContext.headlines && newsContext.headlines.length > 0) {
+      prompt += `
 
 MARKET NEWS (${newsContext.source}):
 ${newsContext.headlines.slice(0, 5).map(h => `• ${h}`).join('\n')}`;
+    }
   }
 
   prompt += `
@@ -178,7 +348,10 @@ Guidelines:
 - Explain technical terms when used
 - Always remind this is educational, not financial advice
 - Use Pakistani market context (PKR, PSX, KSE-100)
-- Reference the above data when answering questions
+- Reference the user's portfolio, trades, and settings when answering personal questions
+- Provide personalized advice based on user's risk thresholds and capital
+- When asked about portfolio risk, analyze concentration and P&L
+- Reference the news data when discussing market sentiment
 - Keep responses focused and actionable`;
 
   return prompt;
@@ -196,7 +369,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: ChatRequest = await request.json();
-    const { messages, stockContext, newsContext } = body;
+    const { messages, stockContext, newsContext, userContext } = body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
@@ -205,8 +378,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build system prompt with context
-    const systemPrompt = buildSystemPrompt(stockContext, newsContext);
+    // Build system prompt with all context
+    const systemPrompt = buildSystemPrompt(stockContext, newsContext, userContext);
 
     // Prepare messages for HuggingFace API
     const apiMessages: ChatMessage[] = [
