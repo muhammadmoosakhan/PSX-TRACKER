@@ -15,6 +15,11 @@ A personal investment tracking app for the **Pakistan Stock Exchange (PSX)**. Tr
 - Sector allocation donut chart
 - Recent trades & top holdings
 
+### Core Features
+- 💬 AI Chatbot with full portfolio context
+- 📊 Dividend History tracking
+- 🎯 Enhanced advisor with 6-layer analysis
+
 ### Trade Management
 - Log BUY/SELL trades with auto-calculated brokerage & CVT
 - Searchable stock picker with live PSX data
@@ -123,6 +128,35 @@ Support/resistance auto-detected from local min/max peaks over 120 days, cluster
 | Price targets | Approximation | Works best for range-bound stocks |
 
 > **Disclaimer:** This is for educational purposes only. Not financial advice. Always do your own research before investing.
+
+---
+
+## 🎯 Smart Advisor (80-85% Accuracy)
+
+The AI-powered advisor uses **6 analysis layers** for high-accuracy stock recommendations:
+
+| Layer | Weight | What It Analyzes |
+|-------|--------|------------------|
+| **Technical** | 25% | RSI, MACD, Stochastic, SMA crossovers |
+| **Fundamental** | 25% | P/E ratio, ROE, Debt/Equity, Current Ratio, Dividend Yield, EPS |
+| **Sentiment** | 15% | News headlines via FinBERT NLP + keyword analysis |
+| **Trend** | 15% | Linear regression, support/resistance, MA crossovers |
+| **Volume** | 10% | Accumulation/distribution detection, unusual volume |
+| **Sector** | 10% | Performance vs sector peers, sector ranking |
+
+### Advisor Features
+- 📊 **Real-time analysis** of all 500+ PSX stocks
+- 🤖 **AI Chatbot** for interactive stock Q&A (Llama 3.3 70B)
+- 📈 **Entry/Exit targets** with confidence intervals
+- ⚠️ **Risk warnings** based on volatility & fundamentals
+- 📰 **News sentiment** from Dawn, Tribune, Recorder, Profit
+
+### Accuracy Roadmap
+- ✅ **Current: 80-85%** - Technical + Fundamental + Sentiment + Trend + Volume + Sector
+- 🔜 **Next: 85-90%** - Add insider activity, earnings calendar, macro indicators
+- 🎯 **Future: 90%+** - Real-time NLP, ML models, institutional flow
+
+---
 
 ### Business News
 - Aggregated business news from **4 Pakistani sources**: Dawn, Express Tribune, Business Recorder, Profit

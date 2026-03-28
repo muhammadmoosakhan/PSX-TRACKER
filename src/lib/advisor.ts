@@ -19,6 +19,8 @@ export interface AdvisoryScore {
   targetEntry: number | null;   // suggested buy price
   targetExit: number | null;    // suggested sell/take-profit
   stopLoss: number | null;      // suggested stop-loss
+  enhancedScore?: number;       // composite score with all factors (0-100)
+  accuracyTier?: string;        // accuracy tier label
 }
 
 // ---- Technical Composite Score (TradingView-style) ----

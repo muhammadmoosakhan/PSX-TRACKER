@@ -16,7 +16,7 @@ import { useMarketData } from '@/hooks/useMarketData';
 interface Advisory {
   symbol: string;
   name: string;
-  sector: string;
+  sectorName: string;
   currentPrice: number;
   ldcp: number;
   advisory: {
@@ -55,6 +55,25 @@ interface Advisory {
     overallLabel: string;
     prediction: { nextDay: number; confidenceLow: number; confidenceHigh: number };
   };
+  fundamentals?: {
+    score: number;
+    signals: string[];
+    breakdown: Record<string, any>;
+  };
+  volume?: {
+    score: number;
+    signal: string;
+    interpretation: string;
+  };
+  sector?: {
+    score: number;
+    signal: string;
+    rank: number;
+    interpretation: string;
+    peersCount: number;
+  };
+  enhancedScore?: number;
+  accuracyTier?: string;
 }
 
 function ScoreGauge({ score, size = 'lg' }: { score: number; size?: 'sm' | 'lg' }) {
@@ -342,7 +361,7 @@ export default function AdvisorPage() {
                   <SignalBadge label={data.advisory.label} />
                 </div>
                 <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{data.name}</p>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{data.sector}</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{data.sectorName}</p>
               </div>
               <div className="text-right">
                 <p className="text-xl font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
@@ -393,6 +412,39 @@ export default function AdvisorPage() {
                 </span>
               </div>
             </div>
+
+            {/* Enhanced Score Badge */}
+            {data.enhancedScore && (
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'var(--accent-primary)', color: 'white' }}>
+                  Enhanced Score: {data.enhancedScore}/100
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+                  {data.accuracyTier} accuracy
+                </span>
+              </div>
+            )}
+
+            {/* Analysis Breakdown */}
+            {data.fundamentals && (
+              <div className="mt-4 p-3 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                <h4 className="text-xs font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Analysis Breakdown</h4>
+                <div className="grid grid-cols-3 gap-2 text-[10px]">
+                  <div>
+                    <span style={{ color: 'var(--text-muted)' }}>Fundamental</span>
+                    <p className="font-bold" style={{ color: 'var(--accent-primary)' }}>{data.fundamentals.score}/100</p>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-muted)' }}>Volume</span>
+                    <p className="font-bold" style={{ color: 'var(--accent-primary)' }}>{data.volume?.score?.toFixed(0) || '-'}/100</p>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-muted)' }}>Sector Rank</span>
+                    <p className="font-bold" style={{ color: 'var(--accent-primary)' }}>#{data.sector?.rank || '-'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Score Breakdown */}
@@ -573,7 +625,7 @@ export default function AdvisorPage() {
         stockContext={data ? {
           symbol: data.symbol,
           name: data.name,
-          sector: data.sector,
+          sector: data.sectorName,
           currentPrice: data.currentPrice,
           ldcp: data.ldcp,
           advisory: {
