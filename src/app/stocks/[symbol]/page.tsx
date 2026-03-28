@@ -607,9 +607,20 @@ export default function StockDetailPage({
 
           if (marketJson.stocks) {
             setAllStocks(marketJson.stocks);
-            const found = marketJson.stocks.find(
+            // Try exact match first, then XD/NC/XB/XR suffixes (ex-dividend, new cert, etc.)
+            let found = marketJson.stocks.find(
               (s: StockCache) => s.symbol.toUpperCase() === decodedSymbol
             );
+            if (!found) {
+              // Try with common PSX suffixes
+              const suffixes = ['XD', 'NC', 'XB', 'XR', 'WU'];
+              for (const suffix of suffixes) {
+                found = marketJson.stocks.find(
+                  (s: StockCache) => s.symbol.toUpperCase() === `${decodedSymbol}${suffix}`
+                );
+                if (found) break;
+              }
+            }
             setStockData(found || null);
           }
 
