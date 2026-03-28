@@ -607,13 +607,15 @@ export default function StockDetailPage({
 
           if (marketJson.stocks) {
             setAllStocks(marketJson.stocks);
-            // Try exact match first, then XD/NC/XB/XR suffixes (ex-dividend, new cert, etc.)
+            
+            // Try exact match first
             let found = marketJson.stocks.find(
               (s: StockCache) => s.symbol.toUpperCase() === decodedSymbol
             );
+            
             if (!found) {
-              // Try with common PSX suffixes
-              const suffixes = ['XD', 'NC', 'XB', 'XR', 'WU'];
+              // Try with common PSX suffixes (XD=ex-dividend, NC=new cert, H=holding, etc.)
+              const suffixes = ['XD', 'NC', 'XB', 'XR', 'WU', 'H', 'IM', 'ETF', 'TETF', 'PETF'];
               for (const suffix of suffixes) {
                 found = marketJson.stocks.find(
                   (s: StockCache) => s.symbol.toUpperCase() === `${decodedSymbol}${suffix}`
@@ -621,6 +623,27 @@ export default function StockDetailPage({
                 if (found) break;
               }
             }
+            
+            if (!found) {
+              // Reverse lookup: check if requested symbol is a variant, find base
+              // e.g., user requests "HBLXD" but we should match it
+              const suffixPattern = /(XD|NC|XB|XR|WU|H|IM|ETF|TETF|PETF)$/i;
+              if (suffixPattern.test(decodedSymbol)) {
+                found = marketJson.stocks.find(
+                  (s: StockCache) => s.symbol.toUpperCase() === decodedSymbol
+                );
+              }
+              // Also try: find any stock that starts with the base symbol
+              if (!found) {
+                found = marketJson.stocks.find(
+                  (s: StockCache) => {
+                    const base = s.symbol.replace(suffixPattern, '').toUpperCase();
+                    return base === decodedSymbol || s.symbol.toUpperCase().startsWith(decodedSymbol);
+                  }
+                );
+              }
+            }
+            
             setStockData(found || null);
           }
 
