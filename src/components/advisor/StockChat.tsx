@@ -155,57 +155,61 @@ How can I help you understand this analysis?`
     setLoading(true);
 
     try {
-      // Filter out only user/assistant messages (exclude welcome message from API call)
-      const chatHistory = messages
-        .filter(m => m.role === 'user' || (m.role === 'assistant' && !m.content.startsWith('👋')))
-        .map(m => ({ role: m.role, content: m.content }));
-      
-      // Build clean stock context for API
+      // Build clean stock context for API - handle undefined values
       const cleanContext = stockContext ? {
-        symbol: stockContext.symbol,
-        name: stockContext.name,
-        sector: stockContext.sector,
-        currentPrice: stockContext.currentPrice,
-        ldcp: stockContext.ldcp,
+        symbol: stockContext.symbol || '',
+        name: stockContext.name || stockContext.symbol || '',
+        sector: stockContext.sector || '',
+        currentPrice: stockContext.currentPrice || 0,
+        ldcp: stockContext.ldcp || 0,
         change: stockContext.currentPrice && stockContext.ldcp 
-          ? stockContext.currentPrice - stockContext.ldcp 
+          ? Number((stockContext.currentPrice - stockContext.ldcp).toFixed(2))
           : 0,
         changePct: stockContext.currentPrice && stockContext.ldcp 
-          ? ((stockContext.currentPrice - stockContext.ldcp) / stockContext.ldcp * 100) 
+          ? Number(((stockContext.currentPrice - stockContext.ldcp) / stockContext.ldcp * 100).toFixed(2))
           : 0,
         advisory: stockContext.advisory ? {
-          label: stockContext.advisory.label,
-          confidence: stockContext.advisory.confidence,
-          reasoning: stockContext.advisory.reasoning,
-          suggestedAction: stockContext.advisory.suggestedAction,
-          riskLevel: stockContext.advisory.riskLevel,
-          targetEntry: stockContext.advisory.targetEntry,
-          targetExit: stockContext.advisory.targetExit,
-          stopLoss: stockContext.advisory.stopLoss,
+          label: stockContext.advisory.label || '',
+          confidence: stockContext.advisory.confidence || 0,
+          reasoning: Array.isArray(stockContext.advisory.reasoning) ? stockContext.advisory.reasoning : [],
+          suggestedAction: stockContext.advisory.suggestedAction || '',
+          riskLevel: stockContext.advisory.riskLevel || '',
+          targetEntry: stockContext.advisory.targetEntry ?? null,
+          targetExit: stockContext.advisory.targetExit ?? null,
+          stopLoss: stockContext.advisory.stopLoss ?? null,
         } : undefined,
         technicals: stockContext.technicals ? {
-          rsi: stockContext.technicals.rsi,
-          macd: stockContext.technicals.macd,
-          compositeScore: stockContext.technicals.compositeScore,
+          rsi: stockContext.technicals.rsi || null,
+          macd: stockContext.technicals.macd || null,
+          compositeScore: stockContext.technicals.compositeScore || 0,
         } : undefined,
         sentiment: stockContext.sentiment ? {
-          label: stockContext.sentiment.label,
-          score: stockContext.sentiment.score,
-          headlines: stockContext.sentiment.headlines?.slice(0, 5),
+          label: stockContext.sentiment.label || 'neutral',
+          score: stockContext.sentiment.score || 0,
+          headlines: Array.isArray(stockContext.sentiment.headlines) 
+            ? stockContext.sentiment.headlines.slice(0, 5) 
+            : [],
         } : undefined,
         trend: stockContext.trend ? {
-          overallLabel: stockContext.trend.overallLabel,
-          volatility: stockContext.trend.volatility,
+          overallLabel: stockContext.trend.overallLabel || '',
+          volatility: stockContext.trend.volatility || 0,
         } : undefined,
       } : undefined;
+      
+      // Get only user messages from history (skip welcome and error messages)
+      const chatHistory = messages
+        .filter(m => m.role === 'user')
+        .map(m => ({ role: 'user' as const, content: m.content }));
+      
+      const requestBody = {
+        messages: [...chatHistory, { role: 'user' as const, content: content.trim() }],
+        stockContext: cleanContext,
+      };
       
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [...chatHistory, userMessage],
-          stockContext: cleanContext,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!res.ok) {
@@ -244,14 +248,7 @@ How can I help you understand this analysis?`
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Chat Panel */}
+      {/* Chat Panel - Side panel without blur overlay */}
       <div
         className="fixed right-0 top-0 h-full z-50 flex flex-col
           w-full md:w-[400px] lg:w-[440px]
