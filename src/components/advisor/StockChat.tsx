@@ -155,17 +155,63 @@ How can I help you understand this analysis?`
     setLoading(true);
 
     try {
+      // Filter out only user/assistant messages (exclude welcome message from API call)
+      const chatHistory = messages
+        .filter(m => m.role === 'user' || (m.role === 'assistant' && !m.content.startsWith('👋')))
+        .map(m => ({ role: m.role, content: m.content }));
+      
+      // Build clean stock context for API
+      const cleanContext = stockContext ? {
+        symbol: stockContext.symbol,
+        name: stockContext.name,
+        sector: stockContext.sector,
+        currentPrice: stockContext.currentPrice,
+        ldcp: stockContext.ldcp,
+        change: stockContext.currentPrice && stockContext.ldcp 
+          ? stockContext.currentPrice - stockContext.ldcp 
+          : 0,
+        changePct: stockContext.currentPrice && stockContext.ldcp 
+          ? ((stockContext.currentPrice - stockContext.ldcp) / stockContext.ldcp * 100) 
+          : 0,
+        advisory: stockContext.advisory ? {
+          label: stockContext.advisory.label,
+          confidence: stockContext.advisory.confidence,
+          reasoning: stockContext.advisory.reasoning,
+          suggestedAction: stockContext.advisory.suggestedAction,
+          riskLevel: stockContext.advisory.riskLevel,
+          targetEntry: stockContext.advisory.targetEntry,
+          targetExit: stockContext.advisory.targetExit,
+          stopLoss: stockContext.advisory.stopLoss,
+        } : undefined,
+        technicals: stockContext.technicals ? {
+          rsi: stockContext.technicals.rsi,
+          macd: stockContext.technicals.macd,
+          compositeScore: stockContext.technicals.compositeScore,
+        } : undefined,
+        sentiment: stockContext.sentiment ? {
+          label: stockContext.sentiment.label,
+          score: stockContext.sentiment.score,
+          headlines: stockContext.sentiment.headlines?.slice(0, 5),
+        } : undefined,
+        trend: stockContext.trend ? {
+          overallLabel: stockContext.trend.overallLabel,
+          volatility: stockContext.trend.volatility,
+        } : undefined,
+      } : undefined;
+      
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [...messages, userMessage],
-          stockContext: stockContext,
+          messages: [...chatHistory, userMessage],
+          stockContext: cleanContext,
         }),
       });
 
       if (!res.ok) {
-        throw new Error('Failed to get response');
+        const errorData = await res.json().catch(() => ({}));
+        console.error('Chat API error:', res.status, errorData);
+        throw new Error(errorData.error || 'Failed to get response');
       }
 
       const data = await res.json();

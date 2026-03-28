@@ -66,6 +66,7 @@ A personal investment tracking app for the **Pakistan Stock Exchange (PSX)**. Tr
 - **Quick picks**: One-tap analysis for popular stocks (ENGRO, HUBC, OGDC, LUCK, etc.)
 - **Moving average crossovers**: Golden Cross / Death Cross detection
 - **Support/resistance**: Auto-detected from price history
+- **AI Chatbot** — interactive assistant for explaining analysis, answering questions, and discussing risks (powered by Llama 3.3 70B via HuggingFace)
 - Zero dependencies — pure TypeScript math, runs on Vercel serverless
 
 #### How the Advisory Score Works
@@ -197,6 +198,7 @@ Each stock has a dedicated detail page (`/stocks/[symbol]`) with **6 tabs**:
 | Icons | Lucide React |
 | Fonts | Plus Jakarta Sans, DM Sans, JetBrains Mono |
 | Sentiment AI | HuggingFace FinBERT (free tier) |
+| Chat AI | HuggingFace Llama 3.3 70B via Groq (free tier) |
 | PSX Data | dps.psx.com.pk (free, no API key) |
 | Hosting | Vercel |
 
@@ -223,6 +225,9 @@ Create `.env.local` in the project root:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# For AI chatbot (required for advisor chat feature)
+HF_TOKEN=your_huggingface_token
 
 # For email notifications (optional)
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
