@@ -587,3 +587,201 @@ export function getAllTechnicals(
     circuitBreakers,
   };
 }
+
+// ---- 9. Chart Data Generators ----
+
+/**
+ * Generates MACD chart data series from historical closes.
+ * Returns an array of { date, macd, signal, histogram } objects.
+ */
+export function getMACDChartData(
+  data: StockHistoryPoint[],
+  fastPeriod: number = 12,
+  slowPeriod: number = 26,
+  signalPeriod: number = 9
+): Array<{ date: string; macd: number; signal: number; histogram: number }> {
+  const closes = data.map(d => d.close);
+  if (closes.length < slowPeriod + signalPeriod) return [];
+  
+  const fastEMA = computeEMASeries(closes, fastPeriod);
+  const slowEMA = computeEMASeries(closes, slowPeriod);
+  
+  if (fastEMA.length === 0 || slowEMA.length === 0) return [];
+  
+  const offset = slowPeriod - fastPeriod;
+  const macdLine: number[] = [];
+  for (let i = 0; i < slowEMA.length; i++) {
+    macdLine.push(fastEMA[i + offset] - slowEMA[i]);
+  }
+  
+  const signalLine = computeEMASeries(macdLine, signalPeriod);
+  if (signalLine.length === 0) return [];
+  
+  // Build chart data - align with dates
+  const result: Array<{ date: string; macd: number; signal: number; histogram: number }> = [];
+  const startIndex = slowPeriod - 1 + signalPeriod - 1;
+  
+  for (let i = 0; i < signalLine.length; i++) {
+    const dataIndex = startIndex + i;
+    if (dataIndex >= data.length) break;
+    
+    const macd = macdLine[signalPeriod - 1 + i];
+    const signal = signalLine[i];
+    
+    result.push({
+      date: data[dataIndex].date,
+      macd: parseFloat(macd.toFixed(4)),
+      signal: parseFloat(signal.toFixed(4)),
+      histogram: parseFloat((macd - signal).toFixed(4)),
+    });
+  }
+  
+  return result.slice(-60); // Last 60 days
+}
+
+/**
+ * Generates Stochastic chart data series.
+ */
+export function getStochasticChartData(
+  data: StockHistoryPoint[],
+  kPeriod: number = 14,
+  dPeriod: number = 3,
+  smooth: number = 3
+): Array<{ date: string; k: number; d: number }> {
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const len = Math.min(highs.length, lows.length, closes.length);
+  
+  const minRequired = kPeriod + smooth - 1 + dPeriod - 1;
+  if (len < minRequired) return [];
+  
+  // Compute raw %K series
+  const rawK: number[] = [];
+  for (let i = kPeriod - 1; i < len; i++) {
+    let highestHigh = -Infinity;
+    let lowestLow = Infinity;
+    for (let j = i - kPeriod + 1; j <= i; j++) {
+      if (highs[j] > highestHigh) highestHigh = highs[j];
+      if (lows[j] < lowestLow) lowestLow = lows[j];
+    }
+    const range = highestHigh - lowestLow;
+    rawK.push(range === 0 ? 50 : ((closes[i] - lowestLow) / range) * 100);
+  }
+  
+  // Smooth rawK to get %K series
+  const kSeries: number[] = [];
+  for (let i = smooth - 1; i < rawK.length; i++) {
+    let sum = 0;
+    for (let j = i - smooth + 1; j <= i; j++) sum += rawK[j];
+    kSeries.push(sum / smooth);
+  }
+  
+  if (kSeries.length < dPeriod) return [];
+  
+  // Smooth %K to get %D series
+  const dSeries: number[] = [];
+  for (let i = dPeriod - 1; i < kSeries.length; i++) {
+    let sum = 0;
+    for (let j = i - dPeriod + 1; j <= i; j++) sum += kSeries[j];
+    dSeries.push(sum / dPeriod);
+  }
+  
+  // Build chart data
+  const result: Array<{ date: string; k: number; d: number }> = [];
+  const startIndex = kPeriod - 1 + smooth - 1 + dPeriod - 1;
+  
+  for (let i = 0; i < dSeries.length; i++) {
+    const dataIndex = startIndex + i;
+    if (dataIndex >= data.length) break;
+    
+    result.push({
+      date: data[dataIndex].date,
+      k: parseFloat(kSeries[dPeriod - 1 + i].toFixed(2)),
+      d: parseFloat(dSeries[i].toFixed(2)),
+    });
+  }
+  
+  return result.slice(-60); // Last 60 days
+}
+
+/**
+ * Generates price data with multiple SMAs for charting.
+ */
+export function getPriceWithSMAs(
+  data: StockHistoryPoint[],
+  periods: number[] = [5, 15, 30, 50]
+): Array<{
+  date: string;
+  close: number;
+  sma5?: number;
+  sma15?: number;
+  sma30?: number;
+  sma50?: number;
+}> {
+  const result: Array<{
+    date: string;
+    close: number;
+    sma5?: number;
+    sma15?: number;
+    sma30?: number;
+    sma50?: number;
+  }> = [];
+  
+  const closes = data.map(d => d.close);
+  
+  for (let i = 0; i < data.length; i++) {
+    const point: typeof result[0] = {
+      date: data[i].date,
+      close: data[i].close,
+    };
+    
+    // Calculate SMA for each period at this point
+    for (const period of periods) {
+      if (i >= period - 1) {
+        let sum = 0;
+        for (let j = i - period + 1; j <= i; j++) {
+          sum += closes[j];
+        }
+        const sma = sum / period;
+        
+        if (period === 5) point.sma5 = parseFloat(sma.toFixed(2));
+        else if (period === 15) point.sma15 = parseFloat(sma.toFixed(2));
+        else if (period === 30) point.sma30 = parseFloat(sma.toFixed(2));
+        else if (period === 50) point.sma50 = parseFloat(sma.toFixed(2));
+      }
+    }
+    
+    result.push(point);
+  }
+  
+  return result.slice(-90); // Last 90 days
+}
+
+/**
+ * Gets pivot point values in raw numeric format for charts.
+ */
+export function getPivotPointsRaw(
+  prevHigh: number,
+  prevLow: number,
+  prevClose: number
+): {
+  r3: number;
+  r2: number;
+  r1: number;
+  pp: number;
+  s1: number;
+  s2: number;
+  s3: number;
+} {
+  const pp = (prevHigh + prevLow + prevClose) / 3;
+  return {
+    r3: parseFloat((prevHigh + 2 * (pp - prevLow)).toFixed(2)),
+    r2: parseFloat((pp + (prevHigh - prevLow)).toFixed(2)),
+    r1: parseFloat((2 * pp - prevLow).toFixed(2)),
+    pp: parseFloat(pp.toFixed(2)),
+    s1: parseFloat((2 * pp - prevHigh).toFixed(2)),
+    s2: parseFloat((pp - (prevHigh - prevLow)).toFixed(2)),
+    s3: parseFloat((prevLow - 2 * (prevHigh - pp)).toFixed(2)),
+  };
+}

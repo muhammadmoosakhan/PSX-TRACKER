@@ -30,9 +30,25 @@ import {
 import { getSectorDisplay } from '@/lib/constants';
 import { getCompanyName } from '@/lib/psx-companies';
 import { getStockLogoUrl } from '@/lib/stock-logos';
-import { getAllTechnicals } from '@/lib/technicals';
+import { 
+  getAllTechnicals, 
+  getMACDChartData, 
+  getStochasticChartData, 
+  getPriceWithSMAs,
+  getPivotPointsRaw,
+  computeRSI,
+  computeMACD,
+  computeSTOCH,
+} from '@/lib/technicals';
 import type { StockCache, StockHistoryPoint } from '@/types';
 import type { StockTechnicals } from '@/lib/technicals';
+import { 
+  RSIGauge, 
+  MACDChart, 
+  StochasticChart, 
+  PriceMAChart, 
+  SupportResistanceChart 
+} from '@/components/technicals';
 
 // ============================================
 // Constants & Types
@@ -794,6 +810,57 @@ export default function StockDetailPage({
     );
   }, [allStocks, stockData]);
 
+  // ---- Chart data for enhanced technical visualizations ----
+  const macdChartData = useMemo(() => {
+    if (history.length < 35) return [];
+    return getMACDChartData(history);
+  }, [history]);
+
+  const stochChartData = useMemo(() => {
+    if (history.length < 20) return [];
+    return getStochasticChartData(history);
+  }, [history]);
+
+  const priceMAData = useMemo(() => {
+    if (history.length < 50) return [];
+    return getPriceWithSMAs(history);
+  }, [history]);
+
+  const srChartData = useMemo(() => {
+    return history.slice(-60).map(d => ({
+      date: new Date(d.date).toLocaleDateString('en-PK', { month: 'short', day: 'numeric' }),
+      close: d.close,
+      high: d.high,
+      low: d.low,
+    }));
+  }, [history]);
+
+  const pivotPointsRaw = useMemo(() => {
+    if (history.length < 1) return null;
+    const lastDay = history[history.length - 1];
+    return getPivotPointsRaw(lastDay.high, lastDay.low, lastDay.close);
+  }, [history]);
+
+  // Individual indicator values for charts
+  const rsiData = useMemo(() => {
+    if (history.length < 15) return null;
+    return computeRSI(history.map(d => d.close));
+  }, [history]);
+
+  const macdData = useMemo(() => {
+    if (history.length < 35) return null;
+    return computeMACD(history.map(d => d.close));
+  }, [history]);
+
+  const stochData = useMemo(() => {
+    if (history.length < 20) return null;
+    return computeSTOCH(
+      history.map(d => d.high),
+      history.map(d => d.low),
+      history.map(d => d.close)
+    );
+  }, [history]);
+
   const sectorInfo = stockData ? getSectorDisplay(stockData.sector) : null;
   const isPositive = stockData ? stockData.change > 0 : false;
   const isNegative = stockData ? stockData.change < 0 : false;
@@ -1108,121 +1175,56 @@ export default function StockDetailPage({
               message="Not enough historical data available on PSX to compute technical indicators."
             />
           ) : (
-            <div>
-              {/* Technical Indicators */}
-              {technicals.indicators.length > 0 && (
-                <div className="mb-6">
-                  <SectionHeader title="Technical Indicators" />
-                  {technicals.indicators.map((ind, i) => {
-                    const pillBg = ind.signal === 'BUY' ? '#00B894' : ind.signal === 'SELL' ? '#FF5252' : '#9CA3C4';
-                    return (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between py-3"
-                        style={{ borderBottom: '1px dashed var(--border-light)' }}
-                      >
-                        <div className="flex items-center gap-2 flex-1">
-                          <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                            {ind.name}
-                          </span>
-                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                            ( {ind.params} )
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className="text-xs font-bold px-4 py-1.5 rounded-[6px] text-white min-w-[70px] text-center"
-                            style={{ background: pillBg, fontFamily: 'var(--font-mono)' }}
-                          >
-                            {ind.value.toFixed(2)}
-                          </span>
-                          <span
-                            className="text-[11px] font-bold px-3 py-1.5 rounded-[6px] text-white min-w-[72px] text-center"
-                            style={{ background: pillBg }}
-                          >
-                            {ind.signal}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
+            <div className="space-y-6">
+              {/* RSI Gauge */}
+              {rsiData && (
+                <div className="p-4 rounded-[12px]" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-light)' }}>
+                  <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--text-primary)' }}>RSI (Relative Strength Index)</h3>
+                  <RSIGauge value={rsiData.value} signal={rsiData.signal} />
                 </div>
               )}
 
-              {/* Pivot Points */}
-              {technicals.pivotPoints.length > 0 && (
-                <div className="mb-6">
-                  <SectionHeader title="Pivot Points" />
-                  {technicals.pivotPoints.map((pp, i) => {
-                    const pillBg =
-                      pp.type === 'resistance' ? '#00B894'
-                      : pp.type === 'support' ? '#FF5252'
-                      : '#9CA3C4';
-
-                    return (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between py-3"
-                        style={{ borderBottom: '1px dashed var(--border-light)' }}
-                      >
-                        <div className="flex items-center gap-3 flex-1">
-                          <span className="text-sm font-bold min-w-[28px]" style={{ color: 'var(--text-primary)' }}>
-                            {pp.label}
-                          </span>
-                          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                            {pp.description}
-                          </span>
-                        </div>
-                        <span
-                          className="text-xs font-bold px-4 py-1.5 rounded-[6px] text-white min-w-[70px] text-center"
-                          style={{ background: pillBg, fontFamily: 'var(--font-mono)' }}
-                        >
-                          {pp.value.toFixed(2)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+              {/* MACD Chart */}
+              {macdData && macdChartData.length > 0 && (
+                <MACDChart 
+                  data={macdChartData}
+                  currentMACD={macdData.macd}
+                  currentSignal={macdData.signal}
+                  currentHistogram={macdData.histogram}
+                  tradeSignal={macdData.tradeSignal}
+                />
               )}
 
-              {/* Simple Moving Averages */}
-              {technicals.movingAverages.length > 0 && (
-                <div className="mb-6">
-                  <SectionHeader title="Simple Moving Averages" />
-                  {technicals.movingAverages.map((ma, i) => {
-                    const pillBg = ma.signal === 'BUY' ? '#00B894' : ma.signal === 'SELL' ? '#FF5252' : '#9CA3C4';
-                    return (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between py-3"
-                        style={{ borderBottom: '1px dashed var(--border-light)' }}
-                      >
-                        <div className="flex items-center gap-2 flex-1">
-                          <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                            {ma.label.split(' ')[0]}
-                          </span>
-                          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                            {ma.label.split(' ').slice(1).join(' ') || `${ma.label} Average`}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className="text-xs font-bold px-4 py-1.5 rounded-[6px] text-white min-w-[70px] text-center"
-                            style={{ background: pillBg, fontFamily: 'var(--font-mono)' }}
-                          >
-                            {ma.value.toFixed(2)}
-                          </span>
-                          <span
-                            className="text-[11px] font-bold px-3 py-1.5 rounded-[6px] text-white min-w-[72px] text-center"
-                            style={{ background: pillBg }}
-                          >
-                            {ma.signal}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+              {/* Stochastic Chart */}
+              {stochData && stochChartData.length > 0 && (
+                <StochasticChart 
+                  data={stochChartData}
+                  currentK={stochData.k}
+                  currentD={stochData.d}
+                  signal={stochData.signal}
+                />
+              )}
+
+              {/* Price vs Moving Averages */}
+              {priceMAData.length > 0 && technicals.movingAverages.length > 0 && (
+                <PriceMAChart 
+                  data={priceMAData.map(d => ({
+                    ...d,
+                    date: new Date(d.date).toLocaleDateString('en-PK', { month: 'short', day: 'numeric' }),
+                  }))}
+                  currentPrice={stockData.current_price}
+                  movingAverages={technicals.movingAverages}
+                />
+              )}
+
+              {/* Support & Resistance */}
+              {pivotPointsRaw && srChartData.length > 0 && (
+                <SupportResistanceChart 
+                  data={srChartData}
+                  currentPrice={stockData.current_price}
+                  pivotPoints={pivotPointsRaw}
+                  week52={technicals.weekRange52 || undefined}
+                />
               )}
             </div>
           )}
