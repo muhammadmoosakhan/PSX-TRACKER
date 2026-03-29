@@ -426,6 +426,7 @@ export async function GET(
       : trendAnalysis.mediumTerm;
 
     return NextResponse.json({
+      _version: '2.0.0', // Version marker for deployment verification
       symbol: upperSymbol,
       name: stockName,
       sectorName: sector,
