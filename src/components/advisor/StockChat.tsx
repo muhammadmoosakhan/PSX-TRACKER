@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Brain, X, SendHorizontal, Sparkles, TrendingUp, AlertTriangle, Newspaper, Briefcase, Settings, PieChart } from 'lucide-react';
+import { Brain, X, SendHorizontal, Sparkles, TrendingUp, AlertTriangle, Newspaper, Briefcase, Settings, PieChart, ThumbsUp, ThumbsDown } from 'lucide-react';
 
 interface PortfolioHolding {
   symbol: string;
@@ -104,6 +104,7 @@ interface StockChatProps {
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  id?: string; // Unique message ID for feedback tracking
 }
 
 const quickActions = [
@@ -252,20 +253,78 @@ function parseMarkdown(text: string): React.ReactNode[] {
 
 function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === 'user';
-  
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const submitFeedback = async (rating: 'positive' | 'negative') => {
+    if (!message.id || isSubmitting || feedbackSubmitted) return;
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/chat/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messageId: message.id,
+          rating,
+          messageContent: message.content.substring(0, 500), // Store first 500 chars
+        }),
+      });
+
+      if (res.ok) {
+        setFeedbackSubmitted(true);
+        // Reset after 3 seconds to allow another feedback if needed
+        setTimeout(() => setFeedbackSubmitted(false), 3000);
+      }
+    } catch (error) {
+      console.error('Failed to submit feedback:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-3 animate-[fade-in_0.3s_ease-out]`}>
-      <div
-        className={`max-w-[85%] px-4 py-3 rounded-2xl ${
-          isUser
-            ? 'bg-[var(--accent-primary)] text-white rounded-br-md'
-            : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-bl-md border border-[var(--border-light)]'
-        }`}
-        style={{ fontFamily: 'var(--font-body)' }}
-      >
-        <div className="text-sm leading-relaxed">
-          {isUser ? message.content : parseMarkdown(message.content)}
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-3 animate-[fade-in_0.3s_ease-out] group`}>
+      <div className="flex flex-col gap-2">
+        <div
+          className={`max-w-[85%] px-4 py-3 rounded-2xl ${
+            isUser
+              ? 'bg-[var(--accent-primary)] text-white rounded-br-md'
+              : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-bl-md border border-[var(--border-light)]'
+          }`}
+          style={{ fontFamily: 'var(--font-body)' }}
+        >
+          <div className="text-sm leading-relaxed">
+            {isUser ? message.content : parseMarkdown(message.content)}
+          </div>
         </div>
+
+        {/* Feedback buttons for assistant messages */}
+        {!isUser && (
+          <div className="flex gap-2 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <button
+              onClick={() => submitFeedback('positive')}
+              disabled={isSubmitting || feedbackSubmitted}
+              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-green-500 hover:bg-green-500/10
+                transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="This was helpful"
+            >
+              <ThumbsUp className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => submitFeedback('negative')}
+              disabled={isSubmitting || feedbackSubmitted}
+              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10
+                transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="This wasn't helpful"
+            >
+              <ThumbsDown className="w-4 h-4" />
+            </button>
+            {feedbackSubmitted && (
+              <span className="text-xs text-[var(--text-muted)] ml-2 py-1">Thanks for your feedback!</span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -280,6 +339,7 @@ export default function StockChat({ stockContext, userContext, newsContext, isOp
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const previousSymbol = useRef<string | null>(null);
+  const messageCountRef = useRef<number>(0);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -333,7 +393,8 @@ Current advisory: **${advisoryLabel}** with ${confidence}% confidence.
 Current price: PKR ${stockContext.currentPrice?.toLocaleString() || 'N/A'} (LDCP: ${stockContext.ldcp?.toLocaleString() || 'N/A'})
 Sector: ${stockContext.sector || 'N/A'}${portfolioSummary}
 
-I have full context of your portfolio, trades, settings, and latest market news. How can I help?`
+I have full context of your portfolio, trades, settings, and latest market news. How can I help?`,
+        id: `msg-${++messageCountRef.current}`,
       };
       
       setMessages([welcomeMessage]);
@@ -391,13 +452,18 @@ I have full context of your portfolio, trades, settings, and latest market news.
         } : undefined,
       } : undefined;
       
-      // Get only user messages from history (skip welcome and error messages)
-      const chatHistory = messages
-        .filter(m => m.role === 'user')
-        .map(m => ({ role: 'user' as const, content: m.content }));
+      // Get conversation history (last 10 messages, excluding system/welcome messages)
+      // Include both user and assistant messages to provide full context
+      const conversationHistory = messages
+        .slice(-10) // Keep last 10 messages for context
+        .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+      
+      // Get only current user message
+      const currentMessage: Message = { role: 'user' as const, content: content.trim() };
       
       const requestBody = {
-        messages: [...chatHistory, { role: 'user' as const, content: content.trim() }],
+        messages: [currentMessage],
+        conversationHistory: conversationHistory.length > 0 ? conversationHistory : undefined,
         stockContext: cleanContext,
         userContext: userContext || undefined,
         newsContext: newsContext || undefined,
@@ -416,7 +482,11 @@ I have full context of your portfolio, trades, settings, and latest market news.
       }
 
       const data = await res.json();
-      setMessages(prev => [...prev, { role: 'assistant', content: data.content }]);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: data.content,
+        id: `msg-${++messageCountRef.current}`,
+      }]);
     } catch (error) {
       setMessages(prev => [
         ...prev,

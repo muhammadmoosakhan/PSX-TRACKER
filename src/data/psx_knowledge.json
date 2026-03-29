@@ -1,0 +1,679 @@
+{
+  "metadata": {
+    "created": "2024",
+    "exchange": "Pakistan Stock Exchange (PSX)",
+    "market": "KSE-100 Index",
+    "currency": "Pakistani Rupee (PKR)",
+    "total_sectors": 35
+  },
+  "sectors": [
+    {
+      "code": "001",
+      "name": "Insurance",
+      "description": "General, life, and Islamic insurance companies providing risk management and coverage products",
+      "top_stocks": ["UBL", "PPL", "EBL"],
+      "characteristics": ["defensive", "value"]
+    },
+    {
+      "code": "002",
+      "name": "Commercial Banks",
+      "description": "Scheduled commercial banks providing retail and corporate banking services",
+      "top_stocks": ["HBL", "BAFL", "MCB", "NBP", "FFC"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "003",
+      "name": "Cement",
+      "description": "Cement manufacturers and producers serving construction and infrastructure sectors",
+      "top_stocks": ["DGKC", "LUCK", "CHCC", "FCCL"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "004",
+      "name": "Fertilizer",
+      "description": "Fertilizer manufacturers producing nitrogen, phosphate, and potash fertilizers for agriculture",
+      "top_stocks": ["EFERT", "FCCL", "ENGRO"],
+      "characteristics": ["cyclical", "growth"]
+    },
+    {
+      "code": "005",
+      "name": "Automobile & Assemblers",
+      "description": "Vehicle manufacturers and assemblers producing cars, buses, and commercial vehicles",
+      "top_stocks": ["PSMC", "HASCOL", "SAZEW"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "006",
+      "name": "Power Generation",
+      "description": "Power utilities generating electricity from thermal, hydel, renewable, and other sources",
+      "top_stocks": ["GENCO", "PPL", "KAPCO"],
+      "characteristics": ["defensive", "value"]
+    },
+    {
+      "code": "007",
+      "name": "Pharmaceuticals",
+      "description": "Pharmaceutical companies manufacturing and distributing medicines and healthcare products",
+      "top_stocks": ["ABL", "AGPL", "GLAXO"],
+      "characteristics": ["defensive", "growth"]
+    },
+    {
+      "code": "008",
+      "name": "Oil & Gas Exploration",
+      "description": "Oil and natural gas exploration, production, and refining companies",
+      "top_stocks": ["PPL", "POL", "OGDC"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "009",
+      "name": "Tobacco",
+      "description": "Tobacco processing and cigarette manufacturing companies",
+      "top_stocks": ["PHILIP", "ITMFD"],
+      "characteristics": ["defensive", "value"]
+    },
+    {
+      "code": "010",
+      "name": "Textile & Apparel",
+      "description": "Textile mills, spinning, weaving, and apparel manufacturing companies",
+      "top_stocks": ["HUBBALLI", "KHADIM"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "011",
+      "name": "Food & Personal Care",
+      "description": "Food processors, FMCG products, and personal care companies",
+      "top_stocks": ["UBL", "ENGRO", "NESTLE"],
+      "characteristics": ["defensive", "growth"]
+    },
+    {
+      "code": "012",
+      "name": "Modaraba & IFCs",
+      "description": "Islamic financial instruments, investment finance companies, and modarabas",
+      "top_stocks": ["KTML", "KPFF"],
+      "characteristics": ["value", "growth"]
+    },
+    {
+      "code": "013",
+      "name": "Trading",
+      "description": "General trading and import-export companies",
+      "top_stocks": ["AGD", "KAPCO"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "014",
+      "name": "Refinery",
+      "description": "Oil refineries processing crude oil into petroleum products",
+      "top_stocks": ["BYCO", "PARCO", "NRL"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "015",
+      "name": "Real Estate & Housing",
+      "description": "Real estate development, housing projects, and property companies",
+      "top_stocks": ["DEWAN", "KCP"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "016",
+      "name": "Wapda & Power Utilities",
+      "description": "Water and power development authority and affiliated utilities",
+      "top_stocks": ["WAPDA"],
+      "characteristics": ["defensive", "value"]
+    },
+    {
+      "code": "017",
+      "name": "Miscellaneous",
+      "description": "Diverse companies not fitting into primary sector classifications",
+      "top_stocks": ["ENNOID", "KARSGARDEN"],
+      "characteristics": ["mixed"]
+    },
+    {
+      "code": "018",
+      "name": "Glass & Ceramics",
+      "description": "Glass, ceramics, and pottery manufacturing companies",
+      "top_stocks": ["FGCC", "GAPL"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "019",
+      "name": "Chemicals",
+      "description": "Chemical manufacturers producing industrial and specialty chemicals",
+      "top_stocks": ["SSGC", "SSCL"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "020",
+      "name": "Papers & Board",
+      "description": "Paper mills and board manufacturing companies",
+      "top_stocks": ["APP", "PKPD"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "021",
+      "name": "Sugar & Allied",
+      "description": "Sugar mills and allied agricultural products manufacturing",
+      "top_stocks": ["MZMD", "GWMT"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "022",
+      "name": "Steel",
+      "description": "Steel manufacturers producing bars, sheets, and other steel products",
+      "top_stocks": ["MUGHAL", "PSX"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "023",
+      "name": "Transport & Logistics",
+      "description": "Transportation, logistics, and warehousing services",
+      "top_stocks": ["TRG", "KARSGARDEN"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "024",
+      "name": "Microbiology & Medical",
+      "description": "Medical diagnostic, pathology, and microbiology services",
+      "top_stocks": ["DAWOOD"],
+      "characteristics": ["growth", "defensive"]
+    },
+    {
+      "code": "025",
+      "name": "Agribusiness",
+      "description": "Agricultural products, seeds, and agribusiness services",
+      "top_stocks": ["ENGRO", "SSGC"],
+      "characteristics": ["cyclical", "growth"]
+    },
+    {
+      "code": "026",
+      "name": "Minerals & Mining",
+      "description": "Mining and mineral extraction companies",
+      "top_stocks": ["TRG"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "027",
+      "name": "Technology & Communications",
+      "description": "Software, IT services, and telecommunications companies",
+      "top_stocks": ["XACT", "PTCL"],
+      "characteristics": ["growth", "value"]
+    },
+    {
+      "code": "028",
+      "name": "Leasing",
+      "description": "Finance lease and equipment leasing companies",
+      "top_stocks": ["ARPL"],
+      "characteristics": ["value"]
+    },
+    {
+      "code": "029",
+      "name": "Synthetic & Rayon",
+      "description": "Synthetic fiber and rayon manufacturing companies",
+      "top_stocks": ["KTML"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "030",
+      "name": "Brokers & Securities",
+      "description": "Brokerage houses and securities trading firms",
+      "top_stocks": ["AKD"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "031",
+      "name": "Departmental Stores",
+      "description": "Retail chains and departmental store operators",
+      "top_stocks": ["KCP"],
+      "characteristics": ["cyclical", "growth"]
+    },
+    {
+      "code": "032",
+      "name": "Hospitality & Tourism",
+      "description": "Hotels, restaurants, and tourism service providers",
+      "top_stocks": ["PKHOTELS", "HASHOO"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "033",
+      "name": "Engineering",
+      "description": "Engineering and construction services providers",
+      "top_stocks": ["PSX"],
+      "characteristics": ["cyclical", "value"]
+    },
+    {
+      "code": "034",
+      "name": "Defence & Aerospace",
+      "description": "Defence equipment and aerospace companies",
+      "top_stocks": ["PBCL"],
+      "characteristics": ["value"]
+    },
+    {
+      "code": "035",
+      "name": "Alternative & Renewable Energy",
+      "description": "Solar, wind, and other renewable energy producers",
+      "top_stocks": ["KAPCO", "GENCO"],
+      "characteristics": ["growth", "defensive"]
+    }
+  ],
+  "trading_rules": {
+    "market_hours": {
+      "opening_time": "09:30 AM",
+      "closing_time": "03:30 PM",
+      "timezone": "PKT (Pakistan Standard Time)",
+      "pre_opening": "09:00 AM - 09:30 AM",
+      "post_closing": "03:30 PM - 04:00 PM"
+    },
+    "settlement": {
+      "type": "T+2",
+      "description": "Trades settled two business days after execution"
+    },
+    "circuit_breaker": {
+      "limit": "±7.5%",
+      "description": "Daily trading limit from previous close; suspended if limit reached"
+    },
+    "lot_size": {
+      "standard": 500,
+      "unit": "shares",
+      "minimum_order": 500
+    },
+    "tick_size": 0.01,
+    "trading_days": "Monday to Friday",
+    "holidays": ["Eid-ul-Fitr", "Eid-ul-Adha", "Ashura", "Kashmir Day", "Pakistan Day", "Labour Day", "Independence Day"],
+    "daily_limits": {
+      "upper_circuit": "+7.5%",
+      "lower_circuit": "-7.5%"
+    },
+    "open_auction": "09:00 AM - 09:30 AM",
+    "auction_mechanism": "Price discovery session"
+  },
+  "terminology": {
+    "LDCP": {
+      "full_form": "Last Day Close Price",
+      "definition": "The closing price of a security from the previous trading session, used as reference for circuit breaker calculations"
+    },
+    "PDC": {
+      "full_form": "Previous Day Close",
+      "definition": "Same as LDCP; previous trading day's closing price"
+    },
+    "Circuit": {
+      "full_form": "Circuit Breaker",
+      "definition": "Automatic halt when stock price moves ±7.5% from previous close to prevent panic trading"
+    },
+    "Ready Market": {
+      "definition": "Secondary market where listed securities are traded between investors after initial issuance"
+    },
+    "Futures": {
+      "definition": "Forward contracts for delivery of securities at a predetermined price on a future date"
+    },
+    "COT": {
+      "full_form": "Certificate of Title",
+      "definition": "Document proving ownership of shares"
+    },
+    "CDC": {
+      "full_form": "Central Depository Company",
+      "definition": "Custodian of securities, manages electronic book entry of shares"
+    },
+    "NCCPL": {
+      "full_form": "National Clearing and Settlement System Limited",
+      "definition": "Central counter-party and settlement organization for PSX"
+    },
+    "KSE": {
+      "full_form": "Karachi Stock Exchange",
+      "definition": "Main stock exchange of Pakistan (now called Pakistan Stock Exchange)"
+    },
+    "PSX": {
+      "full_form": "Pakistan Stock Exchange",
+      "definition": "Primary stock exchange in Pakistan, renamed from KSE in 2016"
+    },
+    "IPO": {
+      "full_form": "Initial Public Offering",
+      "definition": "First offering of shares to public by a private company"
+    },
+    "Rights Issue": {
+      "definition": "Offering of new shares to existing shareholders at discounted rates, maintaining ownership proportion"
+    },
+    "Bonus Issue": {
+      "definition": "Free shares distributed to existing shareholders from retained earnings"
+    },
+    "Dividend": {
+      "definition": "Distribution of profits to shareholders, can be cash or stock"
+    },
+    "Rights Allotment": {
+      "definition": "Assignment of subscription rights to existing shareholders"
+    },
+    "Forced Selling": {
+      "definition": "Selling of shares by broker due to non-payment or margin requirements"
+    },
+    "Authorized Capital": {
+      "definition": "Maximum capital a company is authorized to issue as per its registration"
+    },
+    "Book Value": {
+      "definition": "Net worth of company per share (Equity/Outstanding Shares)"
+    },
+    "Earnings Per Share": {
+      "definition": "Company's profit divided by number of shares outstanding"
+    },
+    "Price to Earnings Ratio": {
+      "definition": "Stock price divided by earnings per share; valuation metric"
+    },
+    "Portfolio": {
+      "definition": "Collection of securities held by an investor"
+    },
+    "Volatility": {
+      "definition": "Measure of price fluctuation over a period"
+    },
+    "Bid": {
+      "definition": "Highest price a buyer is willing to pay for a security"
+    },
+    "Ask": {
+      "definition": "Lowest price a seller is willing to accept for a security"
+    },
+    "Spread": {
+      "definition": "Difference between bid and ask prices"
+    },
+    "Volume": {
+      "definition": "Total number of shares traded in a security during a period"
+    },
+    "Listing": {
+      "definition": "Addition of a security to the official list for trading on the exchange"
+    },
+    "Delisting": {
+      "definition": "Removal of security from exchange listing due to non-compliance or other reasons"
+    },
+    "Limit Up": {
+      "definition": "Price movement reaches the upper circuit limit (+7.5%)"
+    },
+    "Limit Down": {
+      "definition": "Price movement reaches the lower circuit limit (-7.5%)"
+    }
+  },
+  "top_stocks": [
+    {
+      "rank": 1,
+      "symbol": "HBL",
+      "name": "Habib Bank Limited",
+      "sector": "Commercial Banks",
+      "business_description": "Pakistan's largest commercial bank providing retail, corporate, and investment banking services"
+    },
+    {
+      "rank": 2,
+      "symbol": "NBP",
+      "name": "National Bank of Pakistan",
+      "sector": "Commercial Banks",
+      "business_description": "State-owned commercial bank with extensive branch network across Pakistan"
+    },
+    {
+      "rank": 3,
+      "symbol": "PPL",
+      "name": "Pakistan Petroleum Limited",
+      "sector": "Oil & Gas Exploration",
+      "business_description": "Leading oil and natural gas exploration and production company in Pakistan"
+    },
+    {
+      "rank": 4,
+      "symbol": "OGDC",
+      "name": "Oil & Gas Development Company Limited",
+      "sector": "Oil & Gas Exploration",
+      "business_description": "Largest producer of crude oil and natural gas in Pakistan"
+    },
+    {
+      "rank": 5,
+      "symbol": "MCB",
+      "name": "Muslim Commercial Bank",
+      "sector": "Commercial Banks",
+      "business_description": "Major Pakistani commercial bank with diversified financial services"
+    },
+    {
+      "rank": 6,
+      "symbol": "BAFL",
+      "name": "Bank Al-Falah Limited",
+      "sector": "Commercial Banks",
+      "business_description": "Islamic and conventional banking services provider in Pakistan"
+    },
+    {
+      "rank": 7,
+      "symbol": "UBL",
+      "name": "United Breweries Limited",
+      "sector": "Food & Personal Care",
+      "business_description": "Food and beverage company producing beverages and consumer products"
+    },
+    {
+      "rank": 8,
+      "symbol": "GLAXO",
+      "name": "GlaxoSmithKline Pakistan Limited",
+      "sector": "Pharmaceuticals",
+      "business_description": "Pharmaceutical company manufacturing medicines and healthcare products"
+    },
+    {
+      "rank": 9,
+      "symbol": "ENGRO",
+      "name": "Engro Corporation Limited",
+      "sector": "Fertilizer",
+      "business_description": "Diversified conglomerate in fertilizer, chemicals, and agribusiness sectors"
+    },
+    {
+      "rank": 10,
+      "symbol": "ABL",
+      "name": "Adamjee Beverages Limited",
+      "sector": "Pharmaceuticals",
+      "business_description": "Leading pharmaceutical company producing branded generic medicines"
+    },
+    {
+      "rank": 11,
+      "symbol": "EFERT",
+      "name": "Engro Fertilizers Limited",
+      "sector": "Fertilizer",
+      "business_description": "Manufacturer of nitrogenous and phosphatic fertilizers for agricultural sector"
+    },
+    {
+      "rank": 12,
+      "symbol": "LUCK",
+      "name": "Lucky Cement Limited",
+      "sector": "Cement",
+      "business_description": "Leading cement manufacturer serving construction and infrastructure sectors"
+    },
+    {
+      "rank": 13,
+      "symbol": "DGKC",
+      "name": "D.G. Khan Cement Limited",
+      "sector": "Cement",
+      "business_description": "Large cement producer with capacity serving domestic and export markets"
+    },
+    {
+      "rank": 14,
+      "symbol": "CHCC",
+      "name": "Cherat Cement Company Limited",
+      "sector": "Cement",
+      "business_description": "Cement manufacturer producing high-quality cement for construction"
+    },
+    {
+      "rank": 15,
+      "symbol": "FCCL",
+      "name": "Fauji Cement Company Limited",
+      "sector": "Cement",
+      "business_description": "Cement producer and fertilizer manufacturer"
+    },
+    {
+      "rank": 16,
+      "symbol": "PSMC",
+      "name": "Pak Suzuki Motor Company Limited",
+      "sector": "Automobile & Assemblers",
+      "business_description": "Automobile assembler and manufacturer of Suzuki vehicles in Pakistan"
+    },
+    {
+      "rank": 17,
+      "symbol": "POL",
+      "name": "Pakistan Oilfields Limited",
+      "sector": "Oil & Gas Exploration",
+      "business_description": "Oil and natural gas exploration company with significant reserves"
+    },
+    {
+      "rank": 18,
+      "symbol": "GENCO",
+      "name": "Genco Limited",
+      "sector": "Power Generation",
+      "business_description": "Thermal power generation company producing electricity"
+    },
+    {
+      "rank": 19,
+      "symbol": "KAPCO",
+      "name": "Kapco Power Limited",
+      "sector": "Power Generation",
+      "business_description": "Independent power producer generating electricity from multiple sources"
+    },
+    {
+      "rank": 20,
+      "symbol": "PHILIP",
+      "name": "Philip Morris Pakistan Limited",
+      "sector": "Tobacco",
+      "business_description": "Leading cigarette and tobacco products manufacturer"
+    },
+    {
+      "rank": 21,
+      "symbol": "AGPL",
+      "name": "Agritech Limited",
+      "sector": "Pharmaceuticals",
+      "business_description": "Pharmaceutical company with focus on agro-chemicals and veterinary products"
+    },
+    {
+      "rank": 22,
+      "symbol": "KTML",
+      "name": "Kohat Textile Mills Limited",
+      "sector": "Synthetic & Rayon",
+      "business_description": "Textile and synthetic fiber manufacturer"
+    },
+    {
+      "rank": 23,
+      "symbol": "DEWAN",
+      "name": "Dewan Cement Limited",
+      "sector": "Real Estate & Housing",
+      "business_description": "Real estate and property development company"
+    },
+    {
+      "rank": 24,
+      "symbol": "BYCO",
+      "name": "Byco Petroleum Limited",
+      "sector": "Refinery",
+      "business_description": "Oil refinery processing crude oil into petroleum products"
+    },
+    {
+      "rank": 25,
+      "symbol": "PARCO",
+      "name": "Pakistan Refinery Limited",
+      "sector": "Refinery",
+      "business_description": "Leading oil refinery in Pakistan"
+    },
+    {
+      "rank": 26,
+      "symbol": "MUGHAL",
+      "name": "Mughal Steel Limited",
+      "sector": "Steel",
+      "business_description": "Steel manufacturer producing bars and steel products"
+    },
+    {
+      "rank": 27,
+      "symbol": "TRG",
+      "name": "Tri-Arrows Supplies International Limited",
+      "sector": "Transport & Logistics",
+      "business_description": "Trading and logistics services company"
+    },
+    {
+      "rank": 28,
+      "symbol": "SSGC",
+      "name": "Sui Southern Gas Company Limited",
+      "sector": "Chemicals",
+      "business_description": "Natural gas distribution company serving Sindh and Balochistan"
+    },
+    {
+      "rank": 29,
+      "symbol": "PTCL",
+      "name": "Pakistan Telecommunication Company Limited",
+      "sector": "Technology & Communications",
+      "business_description": "Largest telecommunications company in Pakistan"
+    },
+    {
+      "rank": 30,
+      "symbol": "NESTLE",
+      "name": "Nestlé Pakistan Limited",
+      "sector": "Food & Personal Care",
+      "business_description": "Food and beverage company producing Nestlé branded consumer products"
+    }
+  ],
+  "indices": [
+    {
+      "symbol": "KSE100",
+      "full_name": "Karachi Stock Exchange 100 Index",
+      "description": "Primary stock index comprising top 100 companies by market capitalization; represents 80% of total market cap",
+      "type": "Broad Market",
+      "base_year": 1992,
+      "base_value": 1000,
+      "components": 100,
+      "weighting": "Market Capitalization",
+      "trading_hours": "09:30 AM - 03:30 PM PKT"
+    },
+    {
+      "symbol": "KSE30",
+      "full_name": "Karachi Stock Exchange 30 Index",
+      "description": "Index of top 30 blue-chip companies; more volatile but includes major sector leaders",
+      "type": "Large-Cap",
+      "base_year": 2002,
+      "base_value": 1000,
+      "components": 30,
+      "weighting": "Market Capitalization",
+      "trading_hours": "09:30 AM - 03:30 PM PKT"
+    },
+    {
+      "symbol": "KMI30",
+      "full_name": "Karachi Meezan Index 30",
+      "description": "Islamic-compliant index of 30 Shariah-approved companies with dividends reinvested",
+      "type": "Islamic/Shariah-Compliant",
+      "base_year": 2007,
+      "base_value": 1000,
+      "components": 30,
+      "weighting": "Market Capitalization",
+      "criteria": "Shariah-compliance screening",
+      "trading_hours": "09:30 AM - 03:30 PM PKT"
+    },
+    {
+      "symbol": "KMIALLSHR",
+      "full_name": "Karachi Meezan Index All Shares",
+      "description": "Comprehensive Islamic index including all Shariah-compliant listed companies",
+      "type": "Islamic/Shariah-Compliant",
+      "base_year": 2008,
+      "base_value": 1000,
+      "components": 130,
+      "weighting": "Market Capitalization",
+      "criteria": "Shariah-compliance screening",
+      "trading_hours": "09:30 AM - 03:30 PM PKT"
+    }
+  ],
+  "market_statistics": {
+    "total_listed_companies": 600,
+    "market_capitalization_category": "Emerging Market",
+    "regulatory_body": "Securities and Exchange Commission of Pakistan (SECP)",
+    "trading_platform": "Automated matching system",
+    "settlement_system": "NCCPL (National Clearing and Settlement System Limited)",
+    "depository": "CDC (Central Depository Company)",
+    "currency": "Pakistani Rupee (PKR)",
+    "trading_days_per_year": 250
+  },
+  "sector_characteristics": {
+    "growth": "Higher growth potential, expansion phase, reinvesting profits",
+    "value": "Established companies, stable earnings, lower valuations",
+    "defensive": "Stable performance, recession-resistant, consistent dividends",
+    "cyclical": "Performance tied to economic cycles, sensitive to market conditions"
+  },
+  "investment_considerations": {
+    "market_volatility": "Emerging market with moderate to high volatility",
+    "liquidity": "Major indices highly liquid; smaller stocks may have lower liquidity",
+    "regulatory_environment": "Governed by SECP with stringent disclosure requirements",
+    "currency_risk": "PKR exposure; consider hedging for foreign investors",
+    "political_risk": "Pakistan is geopolitically sensitive; monitor political developments",
+    "economic_factors": "Inflation, interest rates, and GDP growth impact market performance"
+  },
+  "useful_resources": {
+    "psx_official": "www.psx.com.pk",
+    "secp": "www.secp.gov.pk",
+    "cdc": "www.cdcpak.com",
+    "nccpl": "www.nccpl.com.pk",
+    "financial_news": "Business Recorder, Dawn Business, Profit Magazine, Biz.com.pk"
+  }
+}

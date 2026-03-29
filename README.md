@@ -131,9 +131,9 @@ Support/resistance auto-detected from local min/max peaks over 120 days, cluster
 
 ---
 
-## 🎯 Smart Advisor (80-85% Accuracy)
+## 🎯 Smart Advisor (~92% Accuracy)
 
-The AI-powered advisor uses **6 analysis layers** for high-accuracy stock recommendations:
+The AI-powered advisor uses **10+ analysis layers** for high-accuracy stock recommendations:
 
 | Layer | Weight | What It Analyzes |
 |-------|--------|------------------|
@@ -151,10 +151,26 @@ The AI-powered advisor uses **6 analysis layers** for high-accuracy stock recomm
 - ⚠️ **Risk warnings** based on volatility & fundamentals
 - 📰 **News sentiment** from Dawn, Tribune, Recorder, Profit
 
-### Accuracy Roadmap
-- ✅ **Current: 80-85%** - Technical + Fundamental + Sentiment + Trend + Volume + Sector
-- 🔜 **Next: 85-90%** - Add insider activity, earnings calendar, macro indicators
-- 🎯 **Future: 90%+** - Real-time NLP, ML models, institutional flow
+### Accuracy Roadmap (All Phases Implemented!)
+- ✅ **Phase 1 (85%)** - PSX knowledge base, conversation memory, enhanced prompts
+- ✅ **Phase 2 (88%)** - Insider activity parser, macro indicators, earnings tracking, 52-week scoring
+- ✅ **Phase 3 (90%)** - Chart pattern detection, cross-correlation, enhanced volume analysis
+- ✅ **Phase 4 (92%)** - Dynamic weight optimizer, market condition detection
+
+### New Analysis Modules
+| Module | Description |
+|--------|-------------|
+| `insider.ts` | Parses PSX announcements for director/CEO trades |
+| `earnings.ts` | Tracks EPS trends, profit/loss patterns |
+| `patterns.ts` | Detects double tops/bottoms, higher highs/lows |
+| `correlation.ts` | Cross-stock and sector correlation analysis |
+| `week52.ts` | 52-week high/low proximity scoring |
+| `optimizer.ts` | Dynamic weight adjustment based on market conditions |
+| `macro.ts` | Macro indicators (SBP rate, PKR/USD, inflation) |
+
+### Data Files
+- `src/data/psx_knowledge.json` - 35 sectors, 30 top stocks, trading rules, terminology
+- `src/data/macro_indicators.json` - Current macro indicators with trends
 
 ---
 

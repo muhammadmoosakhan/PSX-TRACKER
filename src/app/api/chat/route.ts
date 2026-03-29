@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getMacroContext } from '@/lib/macro';
 
 // Request types
 interface ChatMessage {
@@ -110,6 +111,7 @@ interface UserContext {
 
 interface ChatRequest {
   messages: ChatMessage[];
+  conversationHistory?: ChatMessage[]; // Last 10 messages from session for context
   stockContext?: StockContext;
   newsContext?: NewsContext;
   userContext?: UserContext;
@@ -140,7 +142,63 @@ interface HFError {
 
 function buildSystemPrompt(stockContext?: StockContext, newsContext?: NewsContext, userContext?: UserContext): string {
   let prompt = `You are a PSX (Pakistan Stock Exchange) investment analyst assistant.
-You help users understand stock analysis, news sentiment, market trends, and provide personalized portfolio advice.`;
+You help users understand stock analysis, news sentiment, market trends, and provide personalized portfolio advice.
+
+You have context from previous messages in this conversation session. Reference previous questions and discussions when relevant to provide coherent, continuous assistance. If a user asks a follow-up question, use the conversation history to understand the context better.
+
+=== PSX TRADING RULES ===
+TRADING HOURS: Monday-Friday, 9:30 AM - 3:30 PM PKT
+SETTLEMENT: T+2 (Trade Date + 2 Business Days)
+CIRCUIT BREAKERS: ±7.5% daily price limit per stock
+MINIMUM LOT SIZE: 500 shares per transaction
+MARKET TYPES:
+  • Ready Market (Spot): Immediate delivery trades
+  • Futures Market: Forward contracts with agreed settlement dates
+  • COT (Certificate of Trading): Settlement via CDC
+
+KEY PSX TERMINOLOGY:
+  • LDCP (Last Day Closing Price): Previous trading day's closing price
+  • PDC (Previous Day Close): Same as LDCP
+  • CDC (Central Depository Company): Pakistan's securities depository
+  • NCCPL (National Clearing Company of Pakistan): Clearing house for PSX
+  • KSE-100: Main benchmark index (100 largest companies on PSX)
+  • PSX-ALL-SHARE: Broader market index including all listed companies
+
+SECTOR CLASSIFICATION & CHARACTERISTICS:
+  DEFENSIVE SECTORS (Lower volatility, stable returns):
+    • Pharma: Consistent cash flows, regulatory protection
+    • Food & Beverages: Essential goods, steady demand
+    • Utilities: Regulated rates, essential services
+  
+  CYCLICAL SECTORS (Tied to economic cycles):
+    • Cement: Dependent on construction activity
+    • Auto: Consumer discretionary, correlated with economic growth
+    • Steel: Linked to infrastructure and construction
+  
+  GROWTH SECTORS (Higher growth potential):
+    • Technology: Innovation, digital transformation
+    • Telecom: Network expansion, services growth
+    • E-commerce: Digital economy growth
+  
+  VALUE SECTORS (Established with good dividends):
+    • Banks: Interest income, dividend payers
+    • Oil & Gas: Energy sector, commodity exposure
+
+RESPONSE RULES:
+  • Always mention prices in PKR (Pakistani Rupee)
+  • Reference PSX trading hours when suggesting trades (can only execute 9:30 AM - 3:30 PM PKT)
+  • Reference T+2 settlement when discussing delivery timelines
+  • Mention circuit breaker limits when discussing extreme price movements
+  • Explain technical terms on first use (e.g., "LDCP, which is the Last Day Closing Price...")
+  • Keep responses concise but informative
+  • Remind users of applicable taxes (CVT, Capital Gains Tax) when discussing profitability
+  • Consider minimum 500-share lot size in position recommendations
+  • Reference sector characteristics when analyzing individual stocks`;
+
+  // Add macroeconomic context
+  prompt += `
+
+${getMacroContext()}`;
 
   // User's Portfolio Context
   if (userContext) {
@@ -369,7 +427,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: ChatRequest = await request.json();
-    const { messages, stockContext, newsContext, userContext } = body;
+    const { messages, conversationHistory, stockContext, newsContext, userContext } = body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
@@ -382,10 +440,22 @@ export async function POST(request: NextRequest) {
     const systemPrompt = buildSystemPrompt(stockContext, newsContext, userContext);
 
     // Prepare messages for HuggingFace API
+    // Include conversation history (filtered for user and assistant messages) before current message
     const apiMessages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
-      ...messages.filter(m => m.role !== 'system'), // Remove any existing system messages
     ];
+
+    // Add conversation history if provided (max 10 messages for context)
+    if (conversationHistory && Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+      // Filter out system messages and take only last 10 for context
+      const contextMessages = conversationHistory
+        .filter(m => m.role !== 'system')
+        .slice(-10);
+      apiMessages.push(...contextMessages);
+    }
+
+    // Add current message
+    apiMessages.push(...messages.filter(m => m.role !== 'system')); // Remove any existing system messages
 
     // Use HuggingFace router with Groq provider for fast inference
     const response = await fetch('https://router.huggingface.co/v1/chat/completions', {

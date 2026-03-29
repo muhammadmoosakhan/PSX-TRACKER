@@ -1,0 +1,40 @@
+{
+  "last_updated": "2026-03-29",
+  "indicators": {
+    "sbp_policy_rate": {
+      "value": 17.0,
+      "unit": "%",
+      "trend": "stable",
+      "last_change": "2026-02-15"
+    },
+    "pkr_usd": {
+      "value": 278.50,
+      "unit": "PKR",
+      "trend": "stable",
+      "last_change": "2026-03-25"
+    },
+    "inflation_cpi": {
+      "value": 12.5,
+      "unit": "%",
+      "trend": "declining",
+      "last_change": "2026-03-01"
+    },
+    "kse100_pe": {
+      "value": 4.8,
+      "unit": "ratio",
+      "trend": "undervalued",
+      "historical_avg": 8.5
+    },
+    "foreign_investment": {
+      "value": -15.2,
+      "unit": "M USD",
+      "trend": "outflow",
+      "period": "MTD"
+    }
+  },
+  "market_outlook": "neutral",
+  "key_events": [
+    "IMF review ongoing",
+    "Budget announcement June 2026"
+  ]
+}
