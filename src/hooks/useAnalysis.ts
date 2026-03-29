@@ -26,6 +26,19 @@ export function useAnalysis(trades: Trade[]) {
     return wins / realizedTrades.length;
   }, [realizedTrades]);
 
+  // Calculate total shares traded
+  const totalSharesTraded = useMemo(() => {
+    return trades.reduce((sum, t) => sum + t.quantity, 0);
+  }, [trades]);
+
+  const buyShares = useMemo(() => {
+    return trades.filter(t => t.trade_type === 'BUY').reduce((sum, t) => sum + t.quantity, 0);
+  }, [trades]);
+
+  const sellShares = useMemo(() => {
+    return trades.filter(t => t.trade_type === 'SELL').reduce((sum, t) => sum + t.quantity, 0);
+  }, [trades]);
+
   return {
     monthly,
     quarterly,
@@ -33,5 +46,8 @@ export function useAnalysis(trades: Trade[]) {
     realizedTrades,
     totalRealizedPL,
     winRate,
+    totalSharesTraded,
+    buyShares,
+    sellShares,
   };
 }

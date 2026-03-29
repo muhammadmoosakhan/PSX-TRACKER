@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, Layers, ShoppingCart, TrendingDown, Percent } from 'lucide-react';
 import PageHeader from '@/components/layout/PageHeader';
 import EmptyState from '@/components/ui/EmptyState';
-import { SkeletonTable } from '@/components/ui/Skeleton';
+import { SkeletonCard, SkeletonTable } from '@/components/ui/Skeleton';
+import KPICard from '@/components/dashboard/KPICard';
 import MonthlyView from '@/components/analysis/MonthlyView';
 import QuarterlyView from '@/components/analysis/QuarterlyView';
 import YearlyView from '@/components/analysis/YearlyView';
@@ -15,13 +16,16 @@ type Tab = 'monthly' | 'quarterly' | 'yearly';
 
 export default function AnalysisPage() {
   const { trades, loading } = useTrades();
-  const { monthly, quarterly, yearly } = useAnalysis(trades);
+  const { monthly, quarterly, yearly, totalSharesTraded, buyShares, sellShares, winRate } = useAnalysis(trades);
   const [tab, setTab] = useState<Tab>('monthly');
 
   if (loading) {
     return (
       <div className="animate-[fade-in_0.5s_ease-out]">
         <PageHeader title="Analysis" subtitle="Monthly, quarterly, and yearly performance breakdowns" />
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 mb-6">
+          {[1, 2, 3, 4].map((i) => <SkeletonCard key={i} />)}
+        </div>
         <SkeletonTable rows={5} />
       </div>
     );
@@ -45,6 +49,42 @@ export default function AnalysisPage() {
   return (
     <div className="animate-[fade-in_0.5s_ease-out]">
       <PageHeader title="Analysis" subtitle="Monthly, quarterly, and yearly performance breakdowns" />
+
+      {/* Summary KPIs */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 mb-6">
+        <KPICard 
+          label="Total Shares Traded" 
+          value={totalSharesTraded} 
+          format="number" 
+          icon={Layers} 
+          color="#6C5CE7" 
+          delay={0} 
+        />
+        <KPICard 
+          label="Shares Bought" 
+          value={buyShares} 
+          format="number" 
+          icon={ShoppingCart} 
+          color="#00B894" 
+          delay={50} 
+        />
+        <KPICard 
+          label="Shares Sold" 
+          value={sellShares} 
+          format="number" 
+          icon={TrendingDown} 
+          color="#FF5252" 
+          delay={100} 
+        />
+        <KPICard 
+          label="Win Rate" 
+          value={winRate} 
+          format="percent" 
+          icon={Percent} 
+          color="#FDCB6E" 
+          delay={150} 
+        />
+      </div>
 
       {/* Tab Navigation */}
       <div className="flex gap-1 p-1 rounded-[14px] mb-6 w-fit" style={{ background: 'var(--bg-secondary)' }}>
