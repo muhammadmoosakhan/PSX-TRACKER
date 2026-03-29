@@ -517,12 +517,13 @@ I have full context of your portfolio, trades, settings, and latest market news.
     <>
       {/* Chat Panel - Side panel without blur overlay */}
       <div
-        className="fixed right-0 top-0 h-full z-50 flex flex-col
+        className="fixed right-0 top-0 z-[60] flex flex-col
           w-full md:w-[400px] lg:w-[440px]
           bg-[var(--bg-primary)] border-l border-[var(--border-light)]
           shadow-2xl animate-[slide-in-panel_0.3s_ease-out]"
         style={{
           fontFamily: 'var(--font-body)',
+          height: '100dvh', // Use dynamic viewport height for mobile
         }}
       >
         {/* Header */}
@@ -610,9 +611,9 @@ I have full context of your portfolio, trades, settings, and latest market news.
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
-        <div className="px-4 py-4 border-t border-[var(--border-light)] bg-[var(--bg-card)]">
-          <div className="flex items-end gap-3">
+        {/* Input Area - pb-20 on mobile for bottom nav (h-16 = 64px + safe area) */}
+        <div className="px-4 pt-4 pb-20 md:pb-4 border-t border-[var(--border-light)] bg-[var(--bg-card)] shrink-0">
+          <div className="flex items-end gap-2">
             <div className="flex-1 relative">
               <textarea
                 ref={inputRef}
@@ -622,7 +623,7 @@ I have full context of your portfolio, trades, settings, and latest market news.
                 placeholder={stockContext ? `Ask about ${stockContext.symbol}...` : 'Select a stock first...'}
                 disabled={loading || !stockContext}
                 rows={1}
-                className="w-full px-4 py-3 pr-12 text-sm rounded-xl resize-none
+                className="w-full px-4 py-3 text-sm rounded-xl resize-none
                   bg-[var(--input-bg)] border border-[var(--border-light)]
                   text-[var(--text-primary)] placeholder:text-[var(--text-muted)]
                   focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/30
@@ -643,7 +644,7 @@ I have full context of your portfolio, trades, settings, and latest market news.
             <button
               onClick={() => sendMessage(input)}
               disabled={loading || !input.trim() || !stockContext}
-              className="w-12 h-12 rounded-xl flex items-center justify-center
+              className="w-12 h-12 shrink-0 rounded-xl flex items-center justify-center
                 bg-[var(--accent-primary)] text-white shadow-md
                 hover:bg-[var(--accent-primary)]/90 hover:shadow-lg
                 active:scale-95 transition-all duration-200
@@ -653,7 +654,7 @@ I have full context of your portfolio, trades, settings, and latest market news.
               <SendHorizontal className="w-5 h-5" />
             </button>
           </div>
-          <p className="text-[10px] text-[var(--text-muted)] mt-2 text-center">
+          <p className="text-[10px] text-[var(--text-muted)] mt-2 text-center hidden md:block">
             Press Enter to send • Shift+Enter for new line
           </p>
         </div>
