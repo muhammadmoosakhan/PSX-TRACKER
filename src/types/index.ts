@@ -17,6 +17,15 @@ export interface Trade {
   cvt: number;
   net_value: number;
   notes: string;
+  // New detailed fee fields from PDF import
+  commission?: number;
+  sst?: number;
+  cdc_fee?: number;
+  laga?: number;
+  secp?: number;
+  ncs?: number;
+  others?: number;
+  fee_source?: 'pdf' | 'manual';
 }
 
 export interface TradeInput {
@@ -31,6 +40,15 @@ export interface TradeInput {
   cvt: number;
   net_value: number;
   notes?: string;
+  // New detailed fee fields
+  commission?: number;
+  sst?: number;
+  cdc_fee?: number;
+  laga?: number;
+  secp?: number;
+  ncs?: number;
+  others?: number;
+  fee_source?: 'pdf' | 'manual';
 }
 
 export interface Setting {

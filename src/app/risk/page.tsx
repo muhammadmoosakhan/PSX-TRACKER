@@ -7,10 +7,12 @@ import { SkeletonCard } from '@/components/ui/Skeleton';
 import SectorBreakdown from '@/components/risk/SectorBreakdown';
 import RiskMeter from '@/components/risk/RiskMeter';
 import ConcentrationAlert from '@/components/risk/ConcentrationAlert';
+import FeeAnalysisCard from '@/components/risk/FeeAnalysisCard';
 import { useTrades } from '@/hooks/useTrades';
 import { useSettings } from '@/hooks/useSettings';
 import { useMarketData } from '@/hooks/useMarketData';
 import { usePortfolio } from '@/hooks/usePortfolio';
+import { useFeeAnalysis } from '@/hooks/useFeeAnalysis';
 import { calculateRiskMetrics } from '@/lib/calculations';
 import type { AppSettings } from '@/types';
 
@@ -19,8 +21,11 @@ export default function RiskPage() {
   const { settings, loading: settingsLoading } = useSettings();
   const { loading: marketLoading, getPriceMap } = useMarketData();
   const priceMap = getPriceMap();
-  const { holdings, sectorAllocation } = usePortfolio(trades, priceMap);
+  const { holdings, sectorAllocation, summary } = usePortfolio(trades, priceMap);
   const riskMetrics = calculateRiskMetrics(holdings, settings as AppSettings);
+  
+  // Calculate fee analysis from actual trades
+  const feeAnalysis = useFeeAnalysis(trades, summary.totalValue, summary.totalPL);
 
   const loading = tradesLoading || settingsLoading || marketLoading;
 
@@ -74,6 +79,13 @@ export default function RiskPage() {
         Sector Allocation
       </h2>
       <SectorBreakdown data={sectorAllocation} />
+
+      {/* Fee Analysis from actual trades */}
+      {feeAnalysis && trades.length > 0 && (
+        <div className="mt-8">
+          <FeeAnalysisCard analysis={feeAnalysis} />
+        </div>
+      )}
     </div>
   );
 }

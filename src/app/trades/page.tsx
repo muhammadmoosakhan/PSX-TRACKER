@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ArrowLeftRight, ShoppingCart, TrendingDown, Layers } from 'lucide-react';
+import { ArrowLeftRight, ShoppingCart, TrendingDown, Layers, FileUp } from 'lucide-react';
 import PageHeader from '@/components/layout/PageHeader';
 import EmptyState from '@/components/ui/EmptyState';
 import { SkeletonCard, SkeletonTable } from '@/components/ui/Skeleton';
@@ -9,16 +9,20 @@ import Badge from '@/components/ui/Badge';
 import KPICard from '@/components/dashboard/KPICard';
 import TradeForm from '@/components/trades/TradeForm';
 import TradeTable from '@/components/trades/TradeTable';
+import PDFImport from '@/components/trades/PDFImport';
 import { useTrades } from '@/hooks/useTrades';
 import { useSettings } from '@/hooks/useSettings';
 import { useMarketData } from '@/hooks/useMarketData';
 import type { Trade } from '@/types';
+import { ParsedTrade } from '@/lib/pdf-parser';
+import { PSX_COMPANY_NAMES } from '@/lib/psx-companies';
 
 export default function TradesPage() {
   const { trades, loading: tradesLoading, addTrade, updateTrade, deleteTrade } = useTrades();
   const { settings, loading: settingsLoading } = useSettings();
   const { stocks, loading: stocksLoading } = useMarketData();
   const [editTrade, setEditTrade] = useState<Trade | null>(null);
+  const [showPDFImport, setShowPDFImport] = useState(false);
 
   const loading = tradesLoading || settingsLoading || stocksLoading;
 
@@ -47,6 +51,39 @@ export default function TradesPage() {
       return updateTrade(editTrade.id, trade);
     }
     return addTrade(trade);
+  };
+
+  // Handle PDF import
+  const handlePDFImport = async (parsedTrades: ParsedTrade[]) => {
+    for (const pt of parsedTrades) {
+      // Get stock name from PSX_COMPANY_NAMES
+      const stockName = PSX_COMPANY_NAMES[pt.symbol] || pt.stock_name || pt.symbol;
+      // Find sector from market data if available
+      const stockInfo = stocks.find(s => s.symbol === pt.symbol);
+      const sector = stockInfo?.sector || 'Other';
+      
+      await addTrade({
+        trade_date: pt.trade_date,
+        symbol: pt.symbol,
+        stock_name: stockName,
+        sector,
+        trade_type: pt.trade_type,
+        quantity: pt.quantity,
+        rate_per_share: pt.rate_per_share,
+        brokerage: pt.commission, // Map commission to brokerage for compatibility
+        cvt: pt.cvt,
+        net_value: pt.net_value,
+        notes: `Imported from PDF`,
+        commission: pt.commission,
+        sst: pt.sst,
+        cdc_fee: pt.cdc_fee,
+        laga: pt.laga,
+        secp: pt.secp,
+        ncs: pt.ncs,
+        others: pt.others,
+        fee_source: 'pdf',
+      });
+    }
   };
 
   if (loading) {
@@ -109,6 +146,19 @@ export default function TradesPage() {
         </div>
       )}
 
+      {/* Import & Add Trade Section */}
+      <div className="flex gap-3 mb-6">
+        <button
+          onClick={() => setShowPDFImport(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border-light)] 
+            bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--accent-primary)]
+            hover:border-[var(--accent-primary)] transition-all"
+        >
+          <FileUp className="w-4 h-4" />
+          Import from PDF
+        </button>
+      </div>
+
       <TradeForm
         stocks={stocks}
         brokerageRate={settings.brokerage_rate}
@@ -122,13 +172,21 @@ export default function TradesPage() {
         <EmptyState
           icon={ArrowLeftRight}
           title="No trades yet"
-          description="Click 'Add New Trade' above to log your first buy or sell transaction."
+          description="Click 'Add New Trade' above or import from your broker PDF statement."
         />
       ) : (
         <TradeTable
           trades={trades}
           onEdit={setEditTrade}
           onDelete={deleteTrade}
+        />
+      )}
+
+      {/* PDF Import Modal */}
+      {showPDFImport && (
+        <PDFImport
+          onImport={handlePDFImport}
+          onClose={() => setShowPDFImport(false)}
         />
       )}
     </div>
