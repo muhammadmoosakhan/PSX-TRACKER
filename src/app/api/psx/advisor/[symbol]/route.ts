@@ -138,40 +138,39 @@ export async function GET(
       companyFundamentals = cJson.fundamentals || null;
     }
 
-    // 7. Earnings Analysis (NEW)
-    let earningsAnalysis: any = { trend: 'unknown', score: 0, details: 'No earnings data available' };
+    // Parse news response ONCE and reuse
+    let newsArticles: any[] = [];
     if (newsRes.ok) {
       const nJson = await newsRes.json();
-      const articles = nJson.articles || [];
-      // Filter for earnings-related announcements
-      const earningsAnnouncements = articles.filter((a: { title: string; description: string }) => {
-        const text = `${a.title} ${a.description}`.toLowerCase();
-        return /earnings|results|eps|profit|loss|quarterly|q[1-4]|annual results/i.test(text);
-      });
-      if (earningsAnnouncements.length > 0) {
-        earningsAnalysis = analyzeEarningsTrend(earningsAnnouncements);
-      }
+      newsArticles = nJson.articles || [];
+    }
+
+    // 7. Earnings Analysis (NEW)
+    let earningsAnalysis: any = { trend: 'unknown', score: 0, details: 'No earnings data available' };
+    // Filter for earnings-related announcements
+    const earningsAnnouncements = newsArticles.filter((a: { title: string; description: string }) => {
+      const text = `${a.title} ${a.description}`.toLowerCase();
+      return /earnings|results|eps|profit|loss|quarterly|q[1-4]|annual results/i.test(text);
+    });
+    if (earningsAnnouncements.length > 0) {
+      earningsAnalysis = analyzeEarningsTrend(earningsAnnouncements);
     }
 
     // 8. Insider Activity Analysis (NEW)
     let insiderSignal: any = { score: 0, activities: [], period_days: 30, activity_count: 0 };
-    if (newsRes.ok) {
-      const nJson = await newsRes.json();
-      const articles = nJson.articles || [];
-      // Filter for insider-related announcements (director, CEO, CFO, chairman, acquisitions, disposals)
-      const insiderAnnouncements = articles
-        .filter((a: { title: string; description: string }) => {
-          const text = `${a.title} ${a.description}`.toLowerCase();
-          return /director|ceo|cfo|chairman|sponsor|insider|acquire|purchase|sell|disposal|bought|sold/i.test(text);
-        })
-        .map((a: { title: string; date?: string }) => ({
-          title: a.title,
-          date: a.date || new Date().toISOString().split('T')[0],
-        }));
-      
-      if (insiderAnnouncements.length > 0) {
-        insiderSignal = getInsiderSignal(upperSymbol, insiderAnnouncements, 30);
-      }
+    // Filter for insider-related announcements (director, CEO, CFO, chairman, acquisitions, disposals)
+    const insiderAnnouncements = newsArticles
+      .filter((a: { title: string; description: string }) => {
+        const text = `${a.title} ${a.description}`.toLowerCase();
+        return /director|ceo|cfo|chairman|sponsor|insider|acquire|purchase|sell|disposal|bought|sold/i.test(text);
+      })
+      .map((a: { title: string; date?: string }) => ({
+        title: a.title,
+        date: a.date || new Date().toISOString().split('T')[0],
+      }));
+    
+    if (insiderAnnouncements.length > 0) {
+      insiderSignal = getInsiderSignal(upperSymbol, insiderAnnouncements, 30);
     }
 
     let closes = historyData.map((d) => d.close);
