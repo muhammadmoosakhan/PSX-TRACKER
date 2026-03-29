@@ -1,8 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseMunirKhananiStatement } from '@/lib/pdf-parser';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+
+// Set worker to null for Node.js environment  
+GlobalWorkerOptions.workerSrc = '';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  const data = new Uint8Array(buffer);
+  const pdf = await getDocument({ data, useSystemFonts: true }).promise;
+  
+  let fullText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pageText = (textContent.items as any[])
+      .filter((item) => typeof item.str === 'string')
+      .map((item) => item.str)
+      .join(' ');
+    fullText += pageText + '\n';
+  }
+  
+  return fullText;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,12 +54,9 @@ export async function POST(request: NextRequest) {
     
     let text: string;
     
-    // Parse PDF
+    // Parse PDF using pdfjs-dist
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const pdfParse = require('pdf-parse');
-      const pdfData = await pdfParse(buffer);
-      text = pdfData.text;
+      text = await extractTextFromPDF(buffer);
     } catch (pdfError) {
       console.error('PDF parsing error:', pdfError);
       return NextResponse.json(
