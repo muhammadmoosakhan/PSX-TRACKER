@@ -90,9 +90,13 @@ export async function GET(
     // Parse news — filter headlines mentioning this stock/sector
     let relevantHeadlines: string[] = [];
     let newsSourceType: 'stock-specific' | 'sector-related' | 'general-market' = 'general-market';
+    let allNewsArticles: any[] = []; // Store for reuse in earnings/insider analysis
+    
     if (newsRes.ok) {
       const nJson = await newsRes.json();
       const articles = nJson.articles || [];
+      allNewsArticles = articles; // Store for later use
+      
       const stockTerms = [upperSymbol.toLowerCase(), stockName.toLowerCase()].filter(Boolean);
       const sectorTerms = sector ? [sector.toLowerCase()] : [];
       
@@ -138,17 +142,9 @@ export async function GET(
       companyFundamentals = cJson.fundamentals || null;
     }
 
-    // Parse news response ONCE and reuse
-    let newsArticles: any[] = [];
-    if (newsRes.ok) {
-      const nJson = await newsRes.json();
-      newsArticles = nJson.articles || [];
-    }
-
-    // 7. Earnings Analysis (NEW)
+    // 7. Earnings Analysis (NEW) - use already-parsed news articles
     let earningsAnalysis: any = { trend: 'unknown', score: 0, details: 'No earnings data available' };
-    // Filter for earnings-related announcements
-    const earningsAnnouncements = newsArticles.filter((a: { title: string; description: string }) => {
+    const earningsAnnouncements = allNewsArticles.filter((a: { title: string; description: string }) => {
       const text = `${a.title} ${a.description}`.toLowerCase();
       return /earnings|results|eps|profit|loss|quarterly|q[1-4]|annual results/i.test(text);
     });
@@ -156,10 +152,9 @@ export async function GET(
       earningsAnalysis = analyzeEarningsTrend(earningsAnnouncements);
     }
 
-    // 8. Insider Activity Analysis (NEW)
+    // 8. Insider Activity Analysis (NEW) - use already-parsed news articles
     let insiderSignal: any = { score: 0, activities: [], period_days: 30, activity_count: 0 };
-    // Filter for insider-related announcements (director, CEO, CFO, chairman, acquisitions, disposals)
-    const insiderAnnouncements = newsArticles
+    const insiderAnnouncements = allNewsArticles
       .filter((a: { title: string; description: string }) => {
         const text = `${a.title} ${a.description}`.toLowerCase();
         return /director|ceo|cfo|chairman|sponsor|insider|acquire|purchase|sell|disposal|bought|sold/i.test(text);
