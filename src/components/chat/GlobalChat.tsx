@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 interface Message {
   id: string;
@@ -15,8 +15,17 @@ interface QuickAction {
   prompt: string;
 }
 
+// Page context for AI
+interface PageContext {
+  page: string;
+  symbol?: string;
+  tab?: string;
+  description: string;
+}
+
 export default function GlobalChat() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -32,6 +41,62 @@ export default function GlobalChat() {
   // Extract symbol from path if on stock detail page
   const stockMatch = pathname.match(/^\/stocks\/([A-Z]+)$/i);
   const currentSymbol = stockMatch ? stockMatch[1].toUpperCase() : null;
+  
+  // Get current tab from URL hash or default
+  const currentTab = searchParams.get('tab') || (typeof window !== 'undefined' ? window.location.hash.replace('#', '') : '') || 'live';
+
+  // Build page context for AI
+  const getPageContext = useCallback((): PageContext => {
+    if (pathname === '/' || pathname === '/dashboard') {
+      return { page: 'dashboard', description: 'User is on the main dashboard viewing portfolio overview and market summary.' };
+    }
+    
+    if (pathname.startsWith('/stocks') && currentSymbol) {
+      const tabDescriptions: Record<string, string> = {
+        live: `User is viewing LIVE tab for ${currentSymbol} showing real-time price, volume, bid/ask spread, and intraday movement.`,
+        fundamentals: `User is viewing FUNDAMENTALS tab for ${currentSymbol} showing PE ratio, EPS, book value, dividend yield, market cap, and financial ratios.`,
+        technicals: `User is viewing TECHNICALS tab for ${currentSymbol} showing RSI gauge (overbought >70, oversold <30), MACD histogram with signal line crossovers, Stochastic oscillator (%K/%D), Price with SMA overlays (20/50/200 day), and Support/Resistance levels from pivot points. The charts visualize momentum, trend strength, and key price levels.`,
+        news: `User is viewing NEWS tab for ${currentSymbol} showing recent news articles and announcements affecting this stock.`,
+        profile: `User is viewing PROFILE tab for ${currentSymbol} showing company information, sector, listing date, and corporate details.`,
+        peers: `User is viewing PEERS tab for ${currentSymbol} showing comparison with other stocks in the same sector.`,
+      };
+      return { 
+        page: 'stock-detail', 
+        symbol: currentSymbol, 
+        tab: currentTab,
+        description: tabDescriptions[currentTab] || `User is viewing ${currentSymbol} stock details.`
+      };
+    }
+    
+    if (pathname.startsWith('/analysis')) {
+      return { 
+        page: 'analysis', 
+        description: 'User is on the Analysis page viewing Monthly/Quarterly/Yearly performance charts including Net Investment Trend (line chart) and Realized P&L (bar chart with green/red for profit/loss). Charts show trading performance over time.'
+      };
+    }
+    
+    if (pathname.startsWith('/portfolio')) {
+      return { page: 'portfolio', description: 'User is viewing their portfolio holdings, current positions, and unrealized P&L.' };
+    }
+    
+    if (pathname.startsWith('/risk')) {
+      return { page: 'risk', description: 'User is on the Risk Dashboard viewing concentration metrics, exposure analysis, and risk thresholds.' };
+    }
+    
+    if (pathname.startsWith('/news')) {
+      return { page: 'news', description: 'User is browsing Pakistan business news from Dawn, Tribune, Business Recorder, and Profit.' };
+    }
+    
+    if (pathname.startsWith('/settings')) {
+      return { page: 'settings', description: 'User is on Settings page configuring trading costs, capital, and risk thresholds.' };
+    }
+    
+    if (pathname.startsWith('/advisor')) {
+      return { page: 'advisor', description: 'User is on the Stock Advisor page for AI-powered stock analysis and recommendations.' };
+    }
+    
+    return { page: 'other', description: `User is on ${pathname} page.` };
+  }, [pathname, currentSymbol, currentTab]);
 
   // Get page-aware quick actions
   const getQuickActions = useCallback((): QuickAction[] => {
@@ -44,6 +109,22 @@ export default function GlobalChat() {
     }
 
     if (pathname.startsWith('/stocks') && currentSymbol) {
+      // Different quick actions based on current tab
+      if (currentTab === 'technicals') {
+        return [
+          { label: 'Explain Charts', prompt: `Explain what the technical charts (RSI, MACD, Stochastic) are showing for ${currentSymbol}. What do these indicators suggest about the stock's momentum and trend?` },
+          { label: 'RSI Analysis', prompt: `What does the RSI indicator show for ${currentSymbol}? Is it overbought, oversold, or neutral? What does this mean for trading?` },
+          { label: 'MACD Signal', prompt: `Explain the MACD chart for ${currentSymbol}. Are there any crossover signals? What does the histogram indicate about momentum?` },
+          { label: 'Support/Resistance', prompt: `What are the key support and resistance levels for ${currentSymbol}? How should I use these for entry/exit points?` },
+        ];
+      }
+      if (currentTab === 'fundamentals') {
+        return [
+          { label: 'Valuation Check', prompt: `Is ${currentSymbol} undervalued or overvalued based on PE ratio and other fundamentals?` },
+          { label: 'Financial Health', prompt: `Analyze the financial health of ${currentSymbol} based on its fundamental metrics.` },
+          { label: 'Dividend Analysis', prompt: `What's the dividend history and yield for ${currentSymbol}? Is it a good dividend stock?` },
+        ];
+      }
       return [
         { label: `Analyze ${currentSymbol}`, prompt: `Give me a complete analysis of ${currentSymbol}` },
         { label: 'Technical Analysis', prompt: `What do the technical indicators say about ${currentSymbol}?` },
@@ -80,7 +161,7 @@ export default function GlobalChat() {
       { label: 'Help', prompt: 'What can you help me with on PSX Tracker?' },
       { label: 'Market Status', prompt: 'Is the PSX market open? What are the trading hours?' },
     ];
-  }, [pathname, currentSymbol]);
+  }, [pathname, currentSymbol, currentTab]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -115,12 +196,22 @@ export default function GlobalChat() {
         content: m.content,
       }));
 
+      // Get current page context
+      const pageContext = getPageContext();
+      
+      // Enhance the message with page context
+      const enhancedContent = `[PAGE CONTEXT: ${pageContext.description}]
+
+User question: ${content.trim()}`;
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: content.trim() }],
+          messages: [{ role: 'user', content: enhancedContent }],
           conversationHistory,
+          // Pass stock context if on stock page
+          ...(pageContext.symbol && { stockContext: { symbol: pageContext.symbol } }),
         }),
       });
 
