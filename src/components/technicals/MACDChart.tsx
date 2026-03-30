@@ -119,12 +119,16 @@ export function MACDChart({
       <div className="h-[180px]">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
-            <XAxis 
-              dataKey="date" 
+            <XAxis
+              dataKey="date"
               tick={{ fontSize: 9, fill: 'var(--text-muted)' }}
               axisLine={false}
               tickLine={false}
-              interval="preserveStartEnd"
+              interval={Math.max(1, Math.floor(data.length / 7))}
+              tickFormatter={(d: string) => {
+                const dt = new Date(d);
+                return isNaN(dt.getTime()) ? d : dt.toLocaleDateString('en-PK', { month: 'short', day: 'numeric' });
+              }}
             />
             <YAxis 
               domain={[minVal - padding, maxVal + padding]}

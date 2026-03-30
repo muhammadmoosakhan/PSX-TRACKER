@@ -115,12 +115,16 @@ export function StochasticChart({ data, currentK, currentD, signal }: Stochastic
             {/* Oversold zone */}
             <ReferenceArea y1={0} y2={20} fill="#00B894" fillOpacity={0.1} />
             
-            <XAxis 
-              dataKey="date" 
+            <XAxis
+              dataKey="date"
               tick={{ fontSize: 9, fill: 'var(--text-muted)' }}
               axisLine={false}
               tickLine={false}
-              interval="preserveStartEnd"
+              interval={Math.max(1, Math.floor(data.length / 7))}
+              tickFormatter={(d: string) => {
+                const dt = new Date(d);
+                return isNaN(dt.getTime()) ? d : dt.toLocaleDateString('en-PK', { month: 'short', day: 'numeric' });
+              }}
             />
             <YAxis 
               domain={[0, 100]}

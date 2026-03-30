@@ -99,12 +99,12 @@ export function PriceMAChart({ data, currentPrice, movingAverages }: PriceMAChar
       <div className="h-[200px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
-            <XAxis 
-              dataKey="date" 
+            <XAxis
+              dataKey="date"
               tick={{ fontSize: 9, fill: 'var(--text-muted)' }}
               axisLine={false}
               tickLine={false}
-              interval="preserveStartEnd"
+              interval={Math.max(1, Math.floor(data.length / 7))}
             />
             <YAxis 
               domain={['auto', 'auto']}

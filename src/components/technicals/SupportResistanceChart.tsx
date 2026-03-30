@@ -129,12 +129,12 @@ export function SupportResistanceChart({
               </linearGradient>
             </defs>
             
-            <XAxis 
-              dataKey="date" 
+            <XAxis
+              dataKey="date"
               tick={{ fontSize: 9, fill: 'var(--text-muted)' }}
               axisLine={false}
               tickLine={false}
-              interval="preserveStartEnd"
+              interval={Math.max(1, Math.floor(data.length / 7))}
             />
             <YAxis 
               domain={['auto', 'auto']}

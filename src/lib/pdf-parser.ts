@@ -97,9 +97,11 @@ export function parseMunirKhananiStatement(text: string): ParseResult {
       }
       
       // Detect stock name line (ends with symbol like "HUBC" or "OGDC")
-      // Example: "THE HUB POWER COMPANY LIMITED HUBC"
+      // Must have at least 2 words (company name + symbol) and not be header/metadata
       const symbol = extractSymbol(line);
-      if (symbol && !line.includes('T+1REG') && !line.includes('T+2REG') && !line.startsWith('Avg')) {
+      const wordCount = line.trim().split(/\s+/).length;
+      if (symbol && wordCount >= 3 && !line.includes('T+1REG') && !line.includes('T+2REG') && !line.startsWith('Avg')
+          && !line.includes('Office') && !line.includes('TREC') && !line.includes('Trade:') && !line.includes('BLDG')) {
         currentStock = symbol;
         currentStockName = line.replace(symbol, '').trim();
         continue;
