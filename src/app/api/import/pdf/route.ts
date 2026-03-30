@@ -1,46 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseMunirKhananiStatement } from '@/lib/pdf-parser';
+import { extractText } from 'unpdf';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-async function extractTextFromPDF(buffer: Buffer): Promise<string> {
-  try {
-    // Use legacy build of pdfjs-dist for Node.js compatibility
-    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
-    
-    // Convert buffer to Uint8Array for pdfjs
-    const uint8Array = new Uint8Array(buffer);
-    
-    // Load the PDF document
-    const loadingTask = pdfjsLib.getDocument({
-      data: uint8Array,
-      useSystemFonts: true,
-      disableFontFace: true,
-    });
-    
-    const pdf = await loadingTask.promise;
-    const textParts: string[] = [];
-    
-    // Extract text from each page
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      
-      // Build text from items
-      const pageText = textContent.items
-        .map((item) => ('str' in item ? item.str : ''))
-        .join(' ');
-      
-      textParts.push(pageText);
-    }
-    
-    return textParts.join('\n');
-  } catch (error) {
-    console.error('PDF.js extraction error:', error);
-    throw error;
-  }
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -65,13 +28,13 @@ export async function POST(request: NextRequest) {
     
     // Read file content
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
     
     let text: string;
     
-    // Parse PDF using pdfjs-dist (Vercel compatible)
+    // Parse PDF using unpdf (serverless compatible)
     try {
-      text = await extractTextFromPDF(buffer);
+      const { text: extractedText } = await extractText(arrayBuffer, { mergePages: true });
+      text = extractedText;
       
       if (!text || text.trim().length === 0) {
         return NextResponse.json(
