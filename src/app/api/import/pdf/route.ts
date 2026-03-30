@@ -4,6 +4,44 @@ import { parseMunirKhananiStatement } from '@/lib/pdf-parser';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  try {
+    // Use legacy build of pdfjs-dist for Node.js compatibility
+    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    
+    // Convert buffer to Uint8Array for pdfjs
+    const uint8Array = new Uint8Array(buffer);
+    
+    // Load the PDF document
+    const loadingTask = pdfjsLib.getDocument({
+      data: uint8Array,
+      useSystemFonts: true,
+      disableFontFace: true,
+    });
+    
+    const pdf = await loadingTask.promise;
+    const textParts: string[] = [];
+    
+    // Extract text from each page
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      
+      // Build text from items
+      const pageText = textContent.items
+        .map((item) => ('str' in item ? item.str : ''))
+        .join(' ');
+      
+      textParts.push(pageText);
+    }
+    
+    return textParts.join('\n');
+  } catch (error) {
+    console.error('PDF.js extraction error:', error);
+    throw error;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -31,14 +69,16 @@ export async function POST(request: NextRequest) {
     
     let text: string;
     
-    // Parse PDF using pdf-parse
+    // Parse PDF using pdfjs-dist (Vercel compatible)
     try {
-      // Dynamic import for pdf-parse to avoid build issues
-      const pdfParseModule = await import('pdf-parse');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pdfParse = ('default' in pdfParseModule ? pdfParseModule.default : pdfParseModule) as any;
-      const pdfData = await pdfParse(buffer);
-      text = pdfData.text;
+      text = await extractTextFromPDF(buffer);
+      
+      if (!text || text.trim().length === 0) {
+        return NextResponse.json(
+          { success: false, error: 'Could not extract text from PDF. The file might be scanned or image-based.' },
+          { status: 400 }
+        );
+      }
     } catch (pdfError) {
       console.error('PDF parsing error:', pdfError);
       return NextResponse.json(
