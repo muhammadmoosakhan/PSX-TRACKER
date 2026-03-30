@@ -44,6 +44,7 @@ export default function QuarterlyView({ data }: Readonly<{ data: QuarterlyAnalys
       <Card hoverable={false}>
         <h3 className="text-sm font-semibold mb-3" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>
           Quarterly Realized P&L
+          {chartData.length === 1 && <span className="text-xs font-normal ml-2" style={{ color: 'var(--text-muted)' }}>(single data point)</span>}
         </h3>
         <BarChartComponent data={chartData} xKey="quarter" yKey="realized_pl" conditionalColor height={250} />
       </Card>

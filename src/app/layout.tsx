@@ -4,6 +4,8 @@ import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
 import { AuthProvider } from "@/hooks/useAuth";
 import AppShell from "@/components/layout/AppShell";
+import { Suspense } from "react";
+import GlobalChat from "@/components/chat/GlobalChat";
 
 const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-heading",
@@ -48,6 +50,9 @@ export default function RootLayout({
             <AppShell>
               {children}
             </AppShell>
+            <Suspense fallback={null}>
+              <GlobalChat />
+            </Suspense>
           </AuthProvider>
         </ToastProvider>
       </body>

@@ -48,12 +48,14 @@ export default function MonthlyView({ data }: Readonly<{ data: MonthlyAnalysis[]
         <Card hoverable={false}>
           <h3 className="text-sm font-semibold mb-3" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>
             Net Investment Trend
+            {chartData.length === 1 && <span className="text-xs font-normal ml-2" style={{ color: 'var(--text-muted)' }}>(single data point)</span>}
           </h3>
           <LineChartComponent data={chartData} xKey="month" yKey="net_investment" color="#6C5CE7" height={250} />
         </Card>
         <Card hoverable={false}>
           <h3 className="text-sm font-semibold mb-3" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>
             Monthly Realized P&L
+            {chartData.length === 1 && <span className="text-xs font-normal ml-2" style={{ color: 'var(--text-muted)' }}>(single data point)</span>}
           </h3>
           <BarChartComponent data={chartData} xKey="month" yKey="realized_pl" conditionalColor height={250} />
         </Card>
