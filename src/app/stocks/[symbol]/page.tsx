@@ -18,6 +18,8 @@ import {
   MapPin,
   ChevronDown,
   ChevronUp,
+  Maximize2,
+  X,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -25,6 +27,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  CartesianGrid,
   ResponsiveContainer,
 } from 'recharts';
 import { getSectorDisplay } from '@/lib/constants';
@@ -678,6 +681,7 @@ export default function StockDetailPage({
   // ---- State ----
   const [activeTab, setActiveTab] = useState<TabKey>('live');
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('1M');
+  const [chartExpanded, setChartExpanded] = useState(false);
   const [stockData, setStockData] = useState<StockCache | null>(null);
   const [history, setHistory] = useState<StockHistoryPoint[]>([]);
   const [companyData, setCompanyData] = useState<any>(null);
@@ -1025,7 +1029,7 @@ export default function StockDetailPage({
       {activeTab === 'live' && (
         <div className="animate-[fade-in_0.3s_ease-out]">
           {/* Chart period pills */}
-          <div className="flex gap-1.5 mb-3 overflow-x-auto hide-scrollbar">
+          <div className="flex items-center gap-1.5 mb-3 overflow-x-auto hide-scrollbar">
             {CHART_PERIODS.map((p) => (
               <button
                 key={p}
@@ -1040,10 +1044,22 @@ export default function StockDetailPage({
                 {p}
               </button>
             ))}
+            <button
+              onClick={() => setChartExpanded(true)}
+              className="ml-auto p-1.5 rounded-lg transition-all duration-200 flex-shrink-0"
+              style={{ color: 'var(--text-muted)', border: '1px solid var(--border-light)' }}
+              title="Expand chart"
+            >
+              <Maximize2 size={14} />
+            </button>
           </div>
 
           {/* Chart */}
-          <div className="mb-5" style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 16 }}>
+          <div
+            className="mb-5 cursor-pointer"
+            style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 16 }}
+            onClick={() => setChartExpanded(true)}
+          >
             {historyLoading ? (
               <SkeletonBlock className="h-[200px] w-full" />
             ) : chartData.length > 0 ? (
@@ -1055,6 +1071,7 @@ export default function StockDetailPage({
                       <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" opacity={0.5} />
                   <XAxis
                     dataKey="date"
                     tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
@@ -1085,6 +1102,104 @@ export default function StockDetailPage({
               </div>
             )}
           </div>
+
+          {/* Expanded Chart Modal */}
+          {chartExpanded && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center animate-[fade-in_0.15s_ease-out]"
+              style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+              onClick={() => setChartExpanded(false)}
+            >
+              <div
+                className="w-[95vw] max-w-[900px] rounded-2xl p-4 sm:p-6"
+                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-lg)' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
+                      {decodedSymbol} Price Chart
+                    </h3>
+                    {stockData && (
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        PKR {formatPrice(stockData.current_price)}
+                        <span className="ml-2" style={{ color: stockData.change >= 0 ? 'var(--accent-success)' : 'var(--accent-danger)' }}>
+                          {stockData.change >= 0 ? '+' : ''}{stockData.change.toFixed(2)} ({stockData.change_pct.toFixed(2)}%)
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setChartExpanded(false)}
+                    className="p-2 rounded-xl transition-all duration-200 hover:opacity-80"
+                    style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)' }}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Period pills */}
+                <div className="flex gap-2 mb-4 overflow-x-auto hide-scrollbar">
+                  {CHART_PERIODS.map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setChartPeriod(p)}
+                      className="px-4 py-2 text-xs font-bold rounded-full transition-all duration-200 flex-shrink-0"
+                      style={{
+                        background: chartPeriod === p ? 'var(--accent-primary)' : 'transparent',
+                        color: chartPeriod === p ? '#fff' : 'var(--text-muted)',
+                        border: chartPeriod === p ? 'none' : '1px solid var(--border-light)',
+                      }}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Expanded chart */}
+                {chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={400}>
+                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+                      <defs>
+                        <linearGradient id="chartGradientExpanded" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.25} />
+                          <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" opacity={0.4} />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                        axisLine={{ stroke: 'var(--border-light)' }}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        domain={['auto', 'auto']}
+                        tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                        axisLine={{ stroke: 'var(--border-light)' }}
+                        tickLine={false}
+                        tickFormatter={(v) => `${v.toFixed(0)}`}
+                        width={55}
+                      />
+                      <Tooltip content={<ChartTooltipContent />} />
+                      <Area
+                        type="monotone"
+                        dataKey="close"
+                        stroke="var(--accent-primary)"
+                        strokeWidth={2}
+                        fill="url(#chartGradientExpanded)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[400px]">
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No chart data available</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Market Stats */}
           <SectionHeader title="Market Stats" />

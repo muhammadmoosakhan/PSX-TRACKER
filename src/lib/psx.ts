@@ -134,7 +134,7 @@ export async function fetchPSXHistory(symbol: string): Promise<StockHistoryPoint
     const json = JSON.parse(text);
     const data = Array.isArray(json) ? json : (json.data || []);
 
-    return data.map((row: unknown) => {
+    const parsed = data.map((row: unknown) => {
       // PSX returns arrays: [timestamp, open, volume, close]
       if (Array.isArray(row)) {
         const timestamp = Number(row[0]);
@@ -158,6 +158,9 @@ export async function fetchPSXHistory(symbol: string): Promise<StockHistoryPoint
         volume: toNum(obj.VOLUME || obj.volume || obj.Volume),
       };
     });
+
+    // Sort ascending by date (oldest first) so charts read left→right
+    return parsed.sort((a: StockHistoryPoint, b: StockHistoryPoint) => a.date.localeCompare(b.date));
   } catch {
     return [];
   }
