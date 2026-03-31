@@ -10,11 +10,35 @@ export function useMarketData() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const stocksRef = useRef<StockCache[]>([]);
+  const initialLoadDone = useRef(false);
   stocksRef.current = stocks;
+
+  /**
+   * Merge new stock data with existing, ensuring no stock loses its price.
+   * New data wins for stocks present in both; old data kept for stocks missing from new data.
+   */
+  const mergeStocks = useCallback((existing: StockCache[], incoming: StockCache[]): StockCache[] => {
+    if (existing.length === 0) return incoming;
+    if (incoming.length === 0) return existing;
+
+    const merged = new Map<string, StockCache>();
+    // Start with existing data
+    for (const s of existing) {
+      merged.set(s.symbol, s);
+    }
+    // Overwrite with incoming (fresh) data
+    for (const s of incoming) {
+      merged.set(s.symbol, s);
+    }
+    return Array.from(merged.values());
+  }, []);
 
   const fetchMarketData = useCallback(async (forceRefresh = false) => {
     try {
-      setLoading(true);
+      // Only show loading skeleton on initial load, not on background refresh
+      if (!initialLoadDone.current) {
+        setLoading(true);
+      }
 
       // Check cache age first (skip if force refresh)
       if (!forceRefresh) {
@@ -31,6 +55,7 @@ export function useMarketData() {
           const cacheAge = Date.now() - new Date(cached[0].updated_at).getTime();
           if (cacheAge < 120000) {
             setLoading(false);
+            initialLoadDone.current = true;
             return cached;
           }
         }
@@ -41,11 +66,13 @@ export function useMarketData() {
       if (!res.ok) throw new Error('Failed to fetch market data');
 
       const data = await res.json();
-      if (data.stocks) {
-        setStocks(data.stocks);
+      if (data.stocks && data.stocks.length > 0) {
+        // Merge with existing data to prevent missing prices
+        setStocks((prev) => mergeStocks(prev, data.stocks));
         setLastUpdated(new Date().toISOString());
       }
       setError(null);
+      initialLoadDone.current = true;
       return data.stocks || [];
     } catch (e) {
       console.error('Error fetching market data:', e);
@@ -54,7 +81,7 @@ export function useMarketData() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [mergeStocks]);
 
   useEffect(() => {
     fetchMarketData();
