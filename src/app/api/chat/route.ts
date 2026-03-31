@@ -298,8 +298,11 @@ USER'S WATCHLIST: ${watchlist.join(', ')}`;
     prompt += `
 
 CURRENT STOCK ANALYSIS:
-Symbol: ${symbol} | Name: ${name} | Sector: ${sector}
-Price: PKR ${currentPrice.toLocaleString()} | Change: ${change >= 0 ? '+' : ''}${change.toFixed(2)} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%)`;
+Symbol: ${symbol || 'N/A'}${name ? ` | Name: ${name}` : ''}${sector ? ` | Sector: ${sector}` : ''}`;
+    if (currentPrice != null) {
+      prompt += `
+Price: PKR ${currentPrice.toLocaleString()} | Change: ${(change ?? 0) >= 0 ? '+' : ''}${(change ?? 0).toFixed(2)} (${(changePct ?? 0) >= 0 ? '+' : ''}${(changePct ?? 0).toFixed(2)}%)`;
+    }
 
     if (advisory) {
       prompt += `
