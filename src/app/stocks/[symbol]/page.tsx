@@ -1071,7 +1071,7 @@ export default function StockDetailPage({
                       <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" opacity={0.5} />
+                  <CartesianGrid strokeDasharray="4 4" stroke="#888" strokeWidth={0.5} opacity={0.8} />
                   <XAxis
                     dataKey="date"
                     tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
@@ -1167,7 +1167,7 @@ export default function StockDetailPage({
                           <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" opacity={0.4} />
+                      <CartesianGrid strokeDasharray="4 4" stroke="#888" strokeWidth={0.5} opacity={0.8} />
                       <XAxis
                         dataKey="date"
                         tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
