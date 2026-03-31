@@ -59,7 +59,7 @@ export default function LineChartComponent({
             <stop offset="100%" stopColor={color} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="4 4" stroke="#888" strokeWidth={0.5} opacity={0.8} />
+        <CartesianGrid strokeDasharray="4 4" stroke="var(--text-muted)" strokeWidth={0.6} opacity={0.35} />
         <XAxis
           dataKey={xKey}
           tick={{ fill: 'var(--text-muted)', fontSize: 11 }}

@@ -20,6 +20,8 @@ import {
   ChevronUp,
   Maximize2,
   X,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -682,6 +684,7 @@ export default function StockDetailPage({
   const [activeTab, setActiveTab] = useState<TabKey>('live');
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('1M');
   const [chartExpanded, setChartExpanded] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(0);
   const [stockData, setStockData] = useState<StockCache | null>(null);
   const [history, setHistory] = useState<StockHistoryPoint[]>([]);
   const [companyData, setCompanyData] = useState<any>(null);
@@ -806,6 +809,24 @@ export default function StockDetailPage({
       close: d.close,
     }));
   }, [history, chartPeriod]);
+
+  // Zoomed chart data — zoom crops from the end (most recent data)
+  const zoomedChartData = useMemo(() => {
+    if (zoomLevel === 0 || chartData.length === 0) return chartData;
+    const minPoints = 5;
+    const totalPoints = chartData.length;
+    // Each zoom level removes 20% of data from the start
+    const removeCount = Math.min(
+      Math.floor(zoomLevel * 0.2 * totalPoints),
+      totalPoints - minPoints
+    );
+    return chartData.slice(removeCount);
+  }, [chartData, zoomLevel]);
+
+  const maxZoom = useMemo(() => {
+    if (chartData.length <= 5) return 0;
+    return Math.floor(chartData.length / (chartData.length * 0.2)) - 1;
+  }, [chartData.length]);
 
   const competitors = useMemo(() => {
     if (!stockData || allStocks.length === 0) return [];
@@ -1071,7 +1092,7 @@ export default function StockDetailPage({
                       <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="4 4" stroke="#888" strokeWidth={0.5} opacity={0.8} />
+                  <CartesianGrid strokeDasharray="4 4" stroke="var(--text-muted)" strokeWidth={0.6} opacity={0.35} />
                   <XAxis
                     dataKey="date"
                     tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
@@ -1139,12 +1160,12 @@ export default function StockDetailPage({
                   </button>
                 </div>
 
-                {/* Period pills */}
-                <div className="flex gap-2 mb-4 overflow-x-auto hide-scrollbar">
+                {/* Period pills + Zoom controls */}
+                <div className="flex items-center gap-2 mb-4 overflow-x-auto hide-scrollbar">
                   {CHART_PERIODS.map((p) => (
                     <button
                       key={p}
-                      onClick={() => setChartPeriod(p)}
+                      onClick={() => { setChartPeriod(p); setZoomLevel(0); }}
                       className="px-4 py-2 text-xs font-bold rounded-full transition-all duration-200 flex-shrink-0"
                       style={{
                         background: chartPeriod === p ? 'var(--accent-primary)' : 'transparent',
@@ -1155,19 +1176,49 @@ export default function StockDetailPage({
                       {p}
                     </button>
                   ))}
+                  <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+                    <button
+                      onClick={() => setZoomLevel((z) => Math.max(0, z - 1))}
+                      disabled={zoomLevel === 0}
+                      className="p-2 rounded-lg transition-all duration-200"
+                      style={{
+                        color: zoomLevel === 0 ? 'var(--text-muted)' : 'var(--text-primary)',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-light)',
+                        opacity: zoomLevel === 0 ? 0.4 : 1,
+                      }}
+                      title="Zoom out"
+                    >
+                      <ZoomOut size={16} />
+                    </button>
+                    <button
+                      onClick={() => setZoomLevel((z) => Math.min(maxZoom, z + 1))}
+                      disabled={zoomLevel >= maxZoom}
+                      className="p-2 rounded-lg transition-all duration-200"
+                      style={{
+                        color: zoomLevel >= maxZoom ? 'var(--text-muted)' : 'var(--text-primary)',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-light)',
+                        opacity: zoomLevel >= maxZoom ? 0.4 : 1,
+                      }}
+                      title="Zoom in"
+                    >
+                      <ZoomIn size={16} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Expanded chart */}
-                {chartData.length > 0 ? (
+                {zoomedChartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={400}>
-                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+                    <AreaChart data={zoomedChartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
                       <defs>
                         <linearGradient id="chartGradientExpanded" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.25} />
                           <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="4 4" stroke="#888" strokeWidth={0.5} opacity={0.8} />
+                      <CartesianGrid strokeDasharray="4 4" stroke="var(--text-muted)" strokeWidth={0.6} opacity={0.35} />
                       <XAxis
                         dataKey="date"
                         tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
