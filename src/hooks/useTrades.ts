@@ -12,6 +12,11 @@ interface TradeFilters {
   dateTo?: string;
 }
 
+async function getAuthUserId(): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id ?? null;
+}
+
 export function useTrades() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,10 +25,17 @@ export function useTrades() {
   const fetchTrades = useCallback(async (filters?: TradeFilters) => {
     try {
       setLoading(true);
+
+      const userId = await getAuthUserId();
       let query = supabase
         .from('trades')
         .select('*')
         .order('trade_date', { ascending: false });
+
+      // Explicitly filter by user_id for safety (belt + suspenders with RLS)
+      if (userId) {
+        query = query.eq('user_id', userId);
+      }
 
       if (filters?.symbol) {
         query = query.ilike('symbol', `%${filters.symbol}%`);
@@ -61,10 +73,17 @@ export function useTrades() {
 
   const addTrade = useCallback(async (trade: TradeInput): Promise<boolean> => {
     try {
+      const userId = await getAuthUserId();
+      if (!userId) {
+        console.error('Cannot add trade: user not authenticated');
+        return false;
+      }
+
       const grossValue = trade.quantity * trade.rate_per_share;
       const { error: err } = await supabase.from('trades').insert({
         ...trade,
         gross_value: grossValue,
+        user_id: userId,
       });
 
       if (err) throw err;
@@ -72,6 +91,30 @@ export function useTrades() {
       return true;
     } catch (e) {
       console.error('Error adding trade:', e);
+      return false;
+    }
+  }, [fetchTrades]);
+
+  const bulkAddTrades = useCallback(async (tradeInputs: TradeInput[]): Promise<boolean> => {
+    try {
+      const userId = await getAuthUserId();
+      if (!userId) {
+        console.error('Cannot add trades: user not authenticated');
+        return false;
+      }
+
+      const rows = tradeInputs.map((trade) => ({
+        ...trade,
+        gross_value: trade.quantity * trade.rate_per_share,
+        user_id: userId,
+      }));
+
+      const { error: err } = await supabase.from('trades').insert(rows);
+      if (err) throw err;
+      await fetchTrades();
+      return true;
+    } catch (e) {
+      console.error('Error bulk adding trades:', e);
       return false;
     }
   }, [fetchTrades]);
@@ -134,6 +177,7 @@ export function useTrades() {
     error,
     fetchTrades,
     addTrade,
+    bulkAddTrades,
     updateTrade,
     deleteTrade,
     deleteAllTrades,

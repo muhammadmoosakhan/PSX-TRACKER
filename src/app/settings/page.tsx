@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { RefreshCw, Download, Sun, Moon, Monitor, LogOut, RotateCcw, Trash2, AlertTriangle, Lock, Eye, EyeOff } from 'lucide-react';
+import { RefreshCw, Download, Sun, Moon, Monitor, LogOut, RotateCcw, Trash2, AlertTriangle, Lock, Eye, EyeOff, Wrench } from 'lucide-react';
 import PageHeader from '@/components/layout/PageHeader';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -62,6 +62,7 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { showToast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
+  const [repairing, setRepairing] = useState(false);
   const [resetModal, setResetModal] = useState<'settings' | 'trades' | 'all' | null>(null);
   const [resetting, setResetting] = useState(false);
 
@@ -201,6 +202,32 @@ export default function SettingsPage() {
             >
               <RefreshCw size={16} />
               Refresh Stock Cache
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
+              className="w-full"
+              loading={repairing}
+              onClick={async () => {
+                setRepairing(true);
+                try {
+                  const res = await fetch('/api/trades/repair', { method: 'POST' });
+                  const data = await res.json();
+                  if (data.repaired > 0) {
+                    showToast('success', `Repaired ${data.repaired} trades for ${data.user_email}`);
+                    // Re-fetch trades to pick up newly claimed ones
+                    globalThis.location.reload();
+                  } else {
+                    showToast('success', 'All trades are already linked to your account');
+                  }
+                } catch {
+                  showToast('error', 'Failed to repair trades');
+                }
+                setRepairing(false);
+              }}
+            >
+              <Wrench size={16} />
+              Repair Orphaned Trades
             </Button>
             <Button
               variant="secondary"

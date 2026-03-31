@@ -299,8 +299,8 @@ User question: ${content.trim()}`;
       <div
         className={`
           fixed z-[60] transition-all duration-300 ease-out
-          ${isMinimized 
-            ? 'right-4 bottom-20 lg:bottom-6 w-64 h-12' 
+          ${isMinimized
+            ? 'right-4 bottom-20 lg:bottom-6 w-auto h-auto'
             : 'right-4 bottom-20 lg:bottom-6 w-[calc(100vw-2rem)] sm:w-96 h-[70vh] max-h-[600px]'
           }
           ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}
@@ -314,12 +314,12 @@ User question: ${content.trim()}`;
           `}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-[#6C5CE7] text-white">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+          <div className={`flex items-center justify-between bg-[#6C5CE7] text-white ${isMinimized ? 'px-3 py-2' : 'px-4 py-2.5'}`}>
+            <div className="flex items-center gap-2.5">
+              <div className={`rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 ${isMinimized ? 'w-6 h-6' : 'w-7 h-7'}`}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="w-4 h-4"
+                  className={isMinimized ? 'w-3.5 h-3.5' : 'w-4 h-4'}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -332,9 +332,9 @@ User question: ${content.trim()}`;
                   />
                 </svg>
               </div>
-              <span className="font-semibold text-sm">PSX Assistant</span>
+              <span className={`font-semibold ${isMinimized ? 'text-xs' : 'text-sm'}`}>PSX Assistant</span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className={`flex items-center ${isMinimized ? 'gap-0.5' : 'gap-1'}`}>
               {!isMinimized && messages.length > 0 && (
                 <button
                   onClick={clearChat}
@@ -360,12 +360,12 @@ User question: ${content.trim()}`;
               )}
               <button
                 onClick={() => setIsMinimized(!isMinimized)}
-                className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"
+                className={`${isMinimized ? 'p-1' : 'p-1.5'} rounded-lg hover:bg-white/20 transition-colors`}
                 aria-label={isMinimized ? 'Expand chat' : 'Minimize chat'}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="w-4 h-4"
+                  className={isMinimized ? 'w-3.5 h-3.5' : 'w-4 h-4'}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -380,12 +380,12 @@ User question: ${content.trim()}`;
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"
+                className={`${isMinimized ? 'p-1' : 'p-1.5'} rounded-lg hover:bg-white/20 transition-colors`}
                 aria-label="Close chat"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="w-4 h-4"
+                  className={isMinimized ? 'w-3.5 h-3.5' : 'w-4 h-4'}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"

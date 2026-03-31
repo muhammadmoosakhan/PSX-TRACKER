@@ -4,6 +4,21 @@ import { LucideIcon } from 'lucide-react';
 import { formatPKR, formatPercent, formatNumber } from '@/lib/formatters';
 import Card from '@/components/ui/Card';
 
+/**
+ * Format PKR for KPI cards — full number, no compact abbreviation,
+ * but split into "PKR" prefix + number so we can size them independently.
+ */
+function formatPKRForCard(value: number): { prefix: string; amount: string } {
+  if (value === null || value === undefined || isNaN(value)) return { prefix: 'PKR', amount: '0' };
+  const abs = Math.abs(value);
+  const formatted = abs.toLocaleString('en-PK', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+  const sign = value < 0 ? '-' : '';
+  return { prefix: `${sign}PKR`, amount: formatted };
+}
+
 interface KPICardProps {
   label: string;
   value: number;
@@ -26,10 +41,12 @@ export default function KPICard({
   delay = 0,
 }: Readonly<KPICardProps>) {
   const formatted = format === 'pkr'
-    ? formatPKR(value, 0)
+    ? null // handled separately below
     : format === 'percent'
       ? formatPercent(value)
       : formatNumber(value);
+
+  const pkrParts = format === 'pkr' ? formatPKRForCard(value) : null;
 
   return (
     <Card
@@ -44,9 +61,20 @@ export default function KPICard({
           <p className="text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
             {label}
           </p>
-          <p className="font-mono-numbers text-xl sm:text-2xl font-bold truncate animate-[count-up_0.8s_ease-out]" style={{ color: 'var(--text-primary)' }}>
-            {formatted}
-          </p>
+          {pkrParts ? (
+            <div className="animate-[count-up_0.8s_ease-out]">
+              <span className="text-xs font-semibold mr-1" style={{ color: 'var(--text-muted)' }}>
+                {pkrParts.prefix}
+              </span>
+              <span className="font-mono-numbers text-lg sm:text-xl lg:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                {pkrParts.amount}
+              </span>
+            </div>
+          ) : (
+            <p className="font-mono-numbers text-lg sm:text-xl lg:text-2xl font-bold animate-[count-up_0.8s_ease-out]" style={{ color: 'var(--text-primary)' }}>
+              {formatted}
+            </p>
+          )}
           {change !== undefined && (
             <p className={`text-xs font-medium mt-1 ${change >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
               {change >= 0 ? '+' : ''}{change.toFixed(2)}% {changeLabel || ''}

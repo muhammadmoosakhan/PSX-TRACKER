@@ -18,7 +18,7 @@ import { ParsedTrade } from '@/lib/pdf-parser';
 import { PSX_COMPANY_NAMES } from '@/lib/psx-companies';
 
 export default function TradesPage() {
-  const { trades, loading: tradesLoading, addTrade, updateTrade, deleteTrade } = useTrades();
+  const { trades, loading: tradesLoading, addTrade, bulkAddTrades, updateTrade, deleteTrade } = useTrades();
   const { settings, loading: settingsLoading } = useSettings();
   const { stocks, loading: stocksLoading } = useMarketData();
   const [editTrade, setEditTrade] = useState<Trade | null>(null);
@@ -53,16 +53,14 @@ export default function TradesPage() {
     return addTrade(trade);
   };
 
-  // Handle PDF import
+  // Handle PDF import — bulk insert to avoid N re-fetches
   const handlePDFImport = async (parsedTrades: ParsedTrade[]) => {
-    for (const pt of parsedTrades) {
-      // Get stock name from PSX_COMPANY_NAMES
+    const tradeInputs = parsedTrades.map((pt) => {
       const stockName = PSX_COMPANY_NAMES[pt.symbol] || pt.stock_name || pt.symbol;
-      // Find sector from market data if available
       const stockInfo = stocks.find(s => s.symbol === pt.symbol);
       const sector = stockInfo?.sector || 'Other';
-      
-      await addTrade({
+
+      return {
         trade_date: pt.trade_date,
         symbol: pt.symbol,
         stock_name: stockName,
@@ -70,7 +68,7 @@ export default function TradesPage() {
         trade_type: pt.trade_type,
         quantity: pt.quantity,
         rate_per_share: pt.rate_per_share,
-        brokerage: pt.commission, // Map commission to brokerage for compatibility
+        brokerage: pt.commission,
         cvt: pt.cvt,
         net_value: pt.net_value,
         notes: `Imported from PDF`,
@@ -81,9 +79,11 @@ export default function TradesPage() {
         secp: pt.secp,
         ncs: pt.ncs,
         others: pt.others,
-        fee_source: 'pdf',
-      });
-    }
+        fee_source: 'pdf' as const,
+      };
+    });
+
+    await bulkAddTrades(tradeInputs);
   };
 
   if (loading) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { StockCache, StockHistoryPoint } from '@/types';
 
@@ -9,6 +9,8 @@ export function useMarketData() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const stocksRef = useRef<StockCache[]>([]);
+  stocksRef.current = stocks;
 
   const fetchMarketData = useCallback(async (forceRefresh = false) => {
     try {
@@ -48,11 +50,11 @@ export function useMarketData() {
     } catch (e) {
       console.error('Error fetching market data:', e);
       setError('Market data may be outdated');
-      return stocks;
+      return stocksRef.current;
     } finally {
       setLoading(false);
     }
-  }, [stocks]);
+  }, []);
 
   useEffect(() => {
     fetchMarketData();
@@ -98,13 +100,17 @@ export function useMarketData() {
     [stocks]
   );
 
-  const getPriceMap = useCallback((): Record<string, StockCache> => {
+  const priceMap = useMemo((): Record<string, StockCache> => {
     const map: Record<string, StockCache> = {};
     for (const s of stocks) {
       map[s.symbol] = s;
     }
     return map;
   }, [stocks]);
+
+  const getPriceMap = useCallback((): Record<string, StockCache> => {
+    return priceMap;
+  }, [priceMap]);
 
   const getStockHistory = useCallback(
     async (symbol: string): Promise<StockHistoryPoint[]> => {

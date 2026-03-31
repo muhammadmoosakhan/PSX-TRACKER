@@ -207,9 +207,13 @@ export default function TradeForm({
               <label className="block text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Quantity</label>
               <input
                 type="number"
-                min="0"
-                value={quantity || ''}
-                onChange={(e) => setQuantity(Number(e.target.value))}
+                min="1"
+                step="1"
+                value={quantity > 0 ? quantity : ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setQuantity(val === '' ? 0 : Math.max(0, Math.round(Number(val))));
+                }}
                 placeholder="0"
                 className="w-full px-4 py-2.5 text-sm rounded-[12px] outline-none transition-all focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-opacity-30 font-mono-numbers"
                 style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border-light)' }}
@@ -221,8 +225,11 @@ export default function TradeForm({
                 type="number"
                 min="0"
                 step="0.01"
-                value={rate || ''}
-                onChange={(e) => setRate(Number(e.target.value))}
+                value={rate > 0 ? rate : ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setRate(val === '' ? 0 : Math.max(0, Number(val)));
+                }}
                 placeholder="0.00"
                 className="w-full px-4 py-2.5 text-sm rounded-[12px] outline-none transition-all focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-opacity-30 font-mono-numbers"
                 style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border-light)' }}

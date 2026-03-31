@@ -93,7 +93,7 @@ export default function DashboardPage() {
           delay={100}
         />
         <KPICard label="Realized P&L" value={totalRealizedPL} format="pkr" icon={Banknote} color="#E17055" delay={150} />
-        <KPICard label="Win Rate" value={winRate * 100} format="number" icon={Trophy} color="#FECA57" delay={200} />
+        <KPICard label="Win Rate" value={winRate} format="percent" icon={Trophy} color="#FECA57" delay={200} />
         {settings.capital_available > 0 && (
           <KPICard label="Cash Remaining" value={cashRemaining} format="pkr" icon={Banknote} color="#74B9FF" delay={250} />
         )}
