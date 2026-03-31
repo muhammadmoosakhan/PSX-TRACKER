@@ -260,8 +260,20 @@ export default function AnalysisPage() {
             sectorBreakdown={sectorBreakdown}
           />
         )}
-        {tab === 'quarterly' && <QuarterlyView data={quarterly} />}
-        {tab === 'yearly' && <YearlyView data={yearly} />}
+        {tab === 'quarterly' && (
+          <QuarterlyView
+            data={quarterly}
+            stockBreakdown={stockBreakdown}
+            sectorBreakdown={sectorBreakdown}
+          />
+        )}
+        {tab === 'yearly' && (
+          <YearlyView
+            data={yearly}
+            stockBreakdown={stockBreakdown}
+            sectorBreakdown={sectorBreakdown}
+          />
+        )}
       </div>
     </div>
   );
