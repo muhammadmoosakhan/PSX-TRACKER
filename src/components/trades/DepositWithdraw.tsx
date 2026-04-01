@@ -17,7 +17,7 @@ export const CASH_TX_SYMBOL = 'CASH';
 export const CASH_TX_MARKER = 'cash_tx';
 
 export function isCashTransaction(trade: Trade): boolean {
-  return trade.fee_source === CASH_TX_MARKER || trade.symbol === CASH_TX_SYMBOL;
+  return trade.symbol === CASH_TX_SYMBOL;
 }
 
 export function getCashTransactions(trades: Trade[]): Trade[] {
@@ -52,7 +52,7 @@ export default function DepositWithdraw({ trades, onAddTrade, onDeleteTrade, onU
       trade_date: new Date().toISOString().split('T')[0],
       symbol: CASH_TX_SYMBOL,
       stock_name: mode === 'deposit' ? 'Cash Deposit' : 'Cash Withdrawal',
-      sector: 'Cash',
+      sector: 'Other',
       trade_type: mode === 'deposit' ? 'BUY' as const : 'SELL' as const,
       quantity: 1,
       rate_per_share: num,
@@ -60,7 +60,6 @@ export default function DepositWithdraw({ trades, onAddTrade, onDeleteTrade, onU
       cvt: 0,
       net_value: num,
       notes: notes || (mode === 'deposit' ? 'Deposited to broker' : 'Withdrawn from broker'),
-      fee_source: 'cash_tx' as const,
     };
 
     const ok = await onAddTrade(tradeInput as any);
