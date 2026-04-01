@@ -62,12 +62,12 @@ export default function DashboardPage() {
     );
   }
 
-  // Cash remaining — use broker available cash if set, else fallback to capital - invested
-  const cashRemaining = settings.broker_available_cash > 0
-    ? settings.broker_available_cash
-    : settings.capital_available > 0
-      ? settings.capital_available - summary.totalInvested
-      : 0;
+  // Available cash = capital deposited - money spent on buys + money received from sells
+  const totalBuyValue = trades.filter(t => t.trade_type === 'BUY').reduce((s, t) => s + t.net_value, 0);
+  const totalSellValue = trades.filter(t => t.trade_type === 'SELL').reduce((s, t) => s + t.net_value, 0);
+  const cashRemaining = settings.capital_available > 0
+    ? settings.capital_available - totalBuyValue + totalSellValue
+    : 0;
 
   // Monthly portfolio values for chart
   const monthlyData = buildMonthlyPortfolioData(trades, summary.totalValue);

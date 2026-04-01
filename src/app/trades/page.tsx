@@ -113,7 +113,7 @@ export default function TradesPage() {
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 mb-6">
           <KPICard
             label="Available Cash"
-            value={settings.broker_available_cash > 0 ? settings.broker_available_cash : (settings.capital_available > 0 ? settings.capital_available - tradeSummary.buyValue + tradeSummary.sellValue : 0)}
+            value={settings.capital_available > 0 ? settings.capital_available - tradeSummary.buyValue + tradeSummary.sellValue : 0}
             format="pkr"
             icon={Wallet}
             color="#74B9FF"
