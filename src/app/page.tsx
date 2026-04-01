@@ -111,7 +111,7 @@ export default function DashboardPage() {
 
       {/* Brokerage Account */}
       <div className="mb-6">
-        <BrokerageAccount settings={settings} />
+        <BrokerageAccount settings={settings} availableCash={cashRemaining} />
       </div>
 
       {/* Charts Row */}

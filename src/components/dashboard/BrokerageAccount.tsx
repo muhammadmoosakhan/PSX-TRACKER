@@ -6,6 +6,7 @@ import type { AppSettings } from '@/types';
 
 interface BrokerageAccountProps {
   settings: AppSettings;
+  availableCash?: number;
 }
 
 interface AccountField {
@@ -32,7 +33,7 @@ function formatValue(val: number, prefix?: string): string {
   return val.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export default function BrokerageAccount({ settings }: Readonly<BrokerageAccountProps>) {
+export default function BrokerageAccount({ settings, availableCash }: Readonly<BrokerageAccountProps>) {
   const hasData = FIELDS.some((f) => (settings[f.key] as number) > 0);
   if (!hasData) return null;
 
@@ -52,7 +53,10 @@ export default function BrokerageAccount({ settings }: Readonly<BrokerageAccount
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {FIELDS.map((field) => {
-          const val = settings[field.key] as number;
+          // Use dynamic availableCash for the Available Cash field
+          const val = field.key === 'broker_available_cash' && availableCash !== undefined
+            ? availableCash
+            : settings[field.key] as number;
           if (val === 0 && field.key !== 'broker_expense_amount') return null;
           const Icon = field.icon;
           return (
