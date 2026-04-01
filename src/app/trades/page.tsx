@@ -10,6 +10,7 @@ import KPICard from '@/components/dashboard/KPICard';
 import TradeForm from '@/components/trades/TradeForm';
 import TradeTable from '@/components/trades/TradeTable';
 import PDFImport from '@/components/trades/PDFImport';
+import DepositWithdraw from '@/components/trades/DepositWithdraw';
 import { useTrades } from '@/hooks/useTrades';
 import { useSettings } from '@/hooks/useSettings';
 import { useMarketData } from '@/hooks/useMarketData';
@@ -19,7 +20,7 @@ import { PSX_COMPANY_NAMES } from '@/lib/psx-companies';
 
 export default function TradesPage() {
   const { trades, loading: tradesLoading, addTrade, bulkAddTrades, updateTrade, deleteTrade } = useTrades();
-  const { settings, loading: settingsLoading } = useSettings();
+  const { settings, loading: settingsLoading, refreshSettings } = useSettings();
   const { stocks, loading: stocksLoading } = useMarketData();
   const [editTrade, setEditTrade] = useState<Trade | null>(null);
   const [showPDFImport, setShowPDFImport] = useState(false);
@@ -167,11 +168,12 @@ export default function TradesPage() {
         </div>
       )}
 
-      {/* Import & Add Trade Section */}
-      <div className="flex gap-3 mb-6">
+      {/* Deposit/Withdraw & Import */}
+      <div className="flex flex-wrap gap-3 mb-6">
+        <DepositWithdraw onComplete={refreshSettings} />
         <button
           onClick={() => setShowPDFImport(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border-light)] 
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border-light)]
             bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--accent-primary)]
             hover:border-[var(--accent-primary)] transition-all"
         >
