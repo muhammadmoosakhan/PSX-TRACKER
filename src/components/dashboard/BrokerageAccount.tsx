@@ -7,6 +7,7 @@ import type { AppSettings } from '@/types';
 interface BrokerageAccountProps {
   settings: AppSettings;
   availableCash?: number;
+  cashDelta?: number; // totalDeposits - totalWithdrawals since snapshot
 }
 
 interface AccountField {
@@ -33,7 +34,7 @@ function formatValue(val: number, prefix?: string): string {
   return val.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export default function BrokerageAccount({ settings, availableCash }: Readonly<BrokerageAccountProps>) {
+export default function BrokerageAccount({ settings, availableCash, cashDelta = 0 }: Readonly<BrokerageAccountProps>) {
   const hasData = FIELDS.some((f) => (settings[f.key] as number) > 0);
   if (!hasData) return null;
 
@@ -53,10 +54,15 @@ export default function BrokerageAccount({ settings, availableCash }: Readonly<B
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {FIELDS.map((field) => {
-          // Use dynamic availableCash for the Available Cash field
-          const val = field.key === 'broker_available_cash' && availableCash !== undefined
-            ? availableCash
-            : settings[field.key] as number;
+          // Dynamic values: available cash, ledger balance, net worth adjust with deposits/withdrawals
+          let val = settings[field.key] as number;
+          if (field.key === 'broker_available_cash' && availableCash !== undefined) {
+            val = availableCash;
+          } else if (field.key === 'broker_ledger_balance' && cashDelta !== 0) {
+            val = val + cashDelta;
+          } else if (field.key === 'broker_net_worth' && cashDelta !== 0) {
+            val = val + cashDelta;
+          }
           if (val === 0 && field.key !== 'broker_expense_amount') return null;
           const Icon = field.icon;
           return (

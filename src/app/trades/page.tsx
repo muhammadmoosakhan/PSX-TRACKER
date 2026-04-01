@@ -10,7 +10,7 @@ import KPICard from '@/components/dashboard/KPICard';
 import TradeForm from '@/components/trades/TradeForm';
 import TradeTable from '@/components/trades/TradeTable';
 import PDFImport from '@/components/trades/PDFImport';
-import DepositWithdraw from '@/components/trades/DepositWithdraw';
+import DepositWithdraw, { getStockTrades, getCashTransactions } from '@/components/trades/DepositWithdraw';
 import { useTrades } from '@/hooks/useTrades';
 import { useSettings } from '@/hooks/useSettings';
 import { useMarketData } from '@/hooks/useMarketData';
@@ -27,10 +27,16 @@ export default function TradesPage() {
 
   const loading = tradesLoading || settingsLoading || stocksLoading;
 
-  // Calculate trade summaries
+  // Separate stock trades from cash transactions
+  const stockTrades = useMemo(() => getStockTrades(trades), [trades]);
+  const cashTxs = useMemo(() => getCashTransactions(trades), [trades]);
+  const totalDeposits = useMemo(() => cashTxs.filter(t => t.trade_type === 'BUY').reduce((s, t) => s + t.net_value, 0), [cashTxs]);
+  const totalWithdrawals = useMemo(() => cashTxs.filter(t => t.trade_type === 'SELL').reduce((s, t) => s + t.net_value, 0), [cashTxs]);
+
+  // Calculate trade summaries (stock trades only)
   const tradeSummary = useMemo(() => {
-    const buyTrades = trades.filter(t => t.trade_type === 'BUY');
-    const sellTrades = trades.filter(t => t.trade_type === 'SELL');
+    const buyTrades = stockTrades.filter(t => t.trade_type === 'BUY');
+    const sellTrades = stockTrades.filter(t => t.trade_type === 'SELL');
     
     const totalBuyShares = buyTrades.reduce((sum, t) => sum + t.quantity, 0);
     const totalSellShares = sellTrades.reduce((sum, t) => sum + t.quantity, 0);
@@ -45,7 +51,7 @@ export default function TradesPage() {
       sellValue: totalSellValue,
       netShares: totalBuyShares - totalSellShares,
     };
-  }, [trades]);
+  }, [stockTrades]);
 
   const handleSubmit = async (trade: Parameters<typeof addTrade>[0]) => {
     if (editTrade) {
@@ -118,7 +124,8 @@ export default function TradesPage() {
               const net = tradeSummary.buyValue - tradeSummary.sellValue;
               const snap = settings.broker_snapshot_net_investment || 0;
               const broker = settings.broker_available_cash || 0;
-              return broker > 0 && snap > 0 ? broker - (net - snap) : settings.capital_available > 0 ? settings.capital_available - net : 0;
+              const cashDelta = totalDeposits - totalWithdrawals;
+              return broker > 0 && snap > 0 ? broker + cashDelta - (net - snap) : settings.capital_available > 0 ? settings.capital_available + cashDelta - net : 0;
             })()}
             format="pkr"
             icon={Wallet}
@@ -170,7 +177,7 @@ export default function TradesPage() {
 
       {/* Deposit/Withdraw & Import */}
       <div className="flex flex-wrap gap-3 mb-6">
-        <DepositWithdraw onComplete={refreshSettings} />
+        <DepositWithdraw trades={trades} onAddTrade={addTrade as any} onDeleteTrade={deleteTrade} onUpdateTrade={updateTrade as any} />
         <button
           onClick={() => setShowPDFImport(true)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border-light)]
@@ -191,7 +198,7 @@ export default function TradesPage() {
         onCancelEdit={() => setEditTrade(null)}
       />
 
-      {trades.length === 0 ? (
+      {stockTrades.length === 0 ? (
         <EmptyState
           icon={ArrowLeftRight}
           title="No trades yet"
@@ -199,7 +206,7 @@ export default function TradesPage() {
         />
       ) : (
         <TradeTable
-          trades={trades}
+          trades={stockTrades}
           onEdit={setEditTrade}
           onDelete={deleteTrade}
         />

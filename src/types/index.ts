@@ -25,7 +25,7 @@ export interface Trade {
   secp?: number;
   ncs?: number;
   others?: number;
-  fee_source?: 'pdf' | 'manual';
+  fee_source?: 'pdf' | 'manual' | 'cash_tx';
 }
 
 export interface TradeInput {
@@ -48,7 +48,7 @@ export interface TradeInput {
   secp?: number;
   ncs?: number;
   others?: number;
-  fee_source?: 'pdf' | 'manual';
+  fee_source?: 'pdf' | 'manual' | 'cash_tx';
 }
 
 export interface Setting {
