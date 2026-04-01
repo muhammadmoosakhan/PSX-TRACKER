@@ -264,4 +264,5 @@ export interface AppSettings extends SettingsMap {
   broker_expense_amount: number;
   broker_sold_collaterals: number;
   broker_account_pct: number;
+  broker_snapshot_net_investment: number;
 }

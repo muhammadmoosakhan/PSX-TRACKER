@@ -62,12 +62,19 @@ export default function DashboardPage() {
     );
   }
 
-  // Available cash = capital deposited - money spent on buys + money received from sells
+  // Available cash: start from broker's real available cash, adjust for trades made after snapshot
   const totalBuyValue = trades.filter(t => t.trade_type === 'BUY').reduce((s, t) => s + t.net_value, 0);
   const totalSellValue = trades.filter(t => t.trade_type === 'SELL').reduce((s, t) => s + t.net_value, 0);
-  const cashRemaining = settings.capital_available > 0
-    ? settings.capital_available - totalBuyValue + totalSellValue
-    : 0;
+  const currentNetInvestment = totalBuyValue - totalSellValue;
+  const snapshotNet = settings.broker_snapshot_net_investment || 0;
+  const brokerCash = settings.broker_available_cash || 0;
+  // If broker data exists, use it as base and adjust for trade delta since snapshot
+  // Otherwise fall back to capital_available - net investment
+  const cashRemaining = brokerCash > 0 && snapshotNet > 0
+    ? brokerCash - (currentNetInvestment - snapshotNet)
+    : settings.capital_available > 0
+      ? settings.capital_available - currentNetInvestment
+      : 0;
 
   // Monthly portfolio values for chart
   const monthlyData = buildMonthlyPortfolioData(trades, summary.totalValue);

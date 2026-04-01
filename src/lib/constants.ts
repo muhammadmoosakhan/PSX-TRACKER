@@ -100,6 +100,7 @@ export const DEFAULT_SETTINGS = {
   broker_expense_amount: 0,
   broker_sold_collaterals: 0,
   broker_account_pct: 0,
+  broker_snapshot_net_investment: 0,
 };
 
 export const NAV_ITEMS = [
