@@ -256,4 +256,12 @@ export interface AppSettings extends SettingsMap {
   stock_danger: number;
   leverage_warning: number;
   leverage_danger: number;
+  broker_ledger_balance: number;
+  broker_available_cash: number;
+  broker_total_collaterals: number;
+  broker_net_worth: number;
+  broker_margin_eligible: number;
+  broker_expense_amount: number;
+  broker_sold_collaterals: number;
+  broker_account_pct: number;
 }

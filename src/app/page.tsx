@@ -14,6 +14,7 @@ import { SkeletonCard } from '@/components/ui/Skeleton';
 import KPICard from '@/components/dashboard/KPICard';
 import RecentTrades from '@/components/dashboard/RecentTrades';
 import TopHoldings from '@/components/dashboard/TopHoldings';
+import BrokerageAccount from '@/components/dashboard/BrokerageAccount';
 import Card from '@/components/ui/Card';
 import PieChartComponent from '@/components/charts/PieChart';
 import LineChartComponent from '@/components/charts/LineChart';
@@ -97,6 +98,11 @@ export default function DashboardPage() {
         {settings.capital_available > 0 && (
           <KPICard label="Cash Remaining" value={cashRemaining} format="pkr" icon={Banknote} color="#74B9FF" delay={250} />
         )}
+      </div>
+
+      {/* Brokerage Account */}
+      <div className="mb-6">
+        <BrokerageAccount settings={settings} />
       </div>
 
       {/* Charts Row */}

@@ -92,6 +92,14 @@ export const DEFAULT_SETTINGS = {
   stock_danger: 0.25,
   leverage_warning: 0.70,
   leverage_danger: 1.0,
+  broker_ledger_balance: 0,
+  broker_available_cash: 0,
+  broker_total_collaterals: 0,
+  broker_net_worth: 0,
+  broker_margin_eligible: 0,
+  broker_expense_amount: 0,
+  broker_sold_collaterals: 0,
+  broker_account_pct: 0,
 };
 
 export const NAV_ITEMS = [

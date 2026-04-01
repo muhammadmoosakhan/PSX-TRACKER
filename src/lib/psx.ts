@@ -20,7 +20,7 @@ export async function fetchPSXMarketData(): Promise<StockCache[]> {
       'User-Agent': 'Mozilla/5.0 (compatible; PSXTracker/1.0)',
       'Accept': 'text/html,application/json',
     },
-    next: { revalidate: 3600 },
+    next: { revalidate: 60 },
   });
 
   if (!res.ok) {

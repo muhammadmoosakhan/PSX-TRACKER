@@ -43,6 +43,17 @@ const capitalFields: SettingField[] = [
   { key: 'leverage_used', label: 'Leverage Used', unit: 'PKR', multiplier: 1 },
 ];
 
+const brokerageAccountFields: SettingField[] = [
+  { key: 'broker_ledger_balance', label: 'Ledger Balance', unit: 'PKR', multiplier: 1 },
+  { key: 'broker_available_cash', label: 'Available Cash', unit: 'PKR', multiplier: 1 },
+  { key: 'broker_net_worth', label: 'Net Worth', unit: 'PKR', multiplier: 1 },
+  { key: 'broker_total_collaterals', label: 'Total Collaterals', unit: 'PKR', multiplier: 1 },
+  { key: 'broker_margin_eligible', label: 'Margin Eligible', unit: 'PKR', multiplier: 1 },
+  { key: 'broker_sold_collaterals', label: 'Sold Collaterals', unit: 'PKR', multiplier: 1 },
+  { key: 'broker_account_pct', label: 'Account %', unit: '%', multiplier: 1 },
+  { key: 'broker_expense_amount', label: 'Expense Amount', unit: 'PKR', multiplier: 1 },
+];
+
 const riskThresholds: SettingField[] = [
   { key: 'sector_warning', label: 'Sector Warning', unit: '%', multiplier: 100 },
   { key: 'sector_danger', label: 'Sector Danger', unit: '%', multiplier: 100 },
@@ -132,6 +143,14 @@ export default function SettingsPage() {
         <SettingsGroup
           title="Capital"
           fields={capitalFields}
+          settings={settings}
+          onUpdate={handleUpdate}
+        />
+
+        {/* Brokerage Account (Munir Khanani) */}
+        <SettingsGroup
+          title="Brokerage Account"
+          fields={brokerageAccountFields}
           settings={settings}
           onUpdate={handleUpdate}
         />

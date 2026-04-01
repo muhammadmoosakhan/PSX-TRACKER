@@ -413,7 +413,17 @@ Guidelines:
 - Provide personalized advice based on user's risk thresholds and capital
 - When asked about portfolio risk, analyze concentration and P&L
 - Reference the news data when discussing market sentiment
-- Keep responses focused and actionable`;
+- Keep responses focused and actionable
+
+CRITICAL DATA ACCURACY RULES:
+- ONLY use stock prices, volumes, and metrics from the context provided above. NEVER guess, estimate, or make up prices from your training data.
+- If a price or data point is not in the context, say "I don't have that data right now" instead of inventing a number.
+- Always prefix price mentions with the source: "Based on current market data, PKR X.XX"
+- If the data timestamp shows data is older than 30 minutes, warn the user that prices may have changed.
+- Never confuse LDCP (last day closing price) with current price.
+- When calculating P&L, tax, or position sizing, use ONLY the exact numbers from the context.
+
+Data freshness: ${new Date().toISOString()} (server time)`;
 
   return prompt;
 }
@@ -470,8 +480,8 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: 'meta-llama/Llama-3.3-70B-Instruct:groq',
         messages: apiMessages,
-        max_tokens: 500,
-        temperature: 0.7,
+        max_tokens: 1000,
+        temperature: 0.3,
       }),
     });
 
