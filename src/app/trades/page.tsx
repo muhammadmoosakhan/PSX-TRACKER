@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ArrowLeftRight, ShoppingCart, TrendingDown, Layers, FileUp } from 'lucide-react';
+import { ArrowLeftRight, ShoppingCart, TrendingDown, Layers, FileUp, Wallet, Banknote } from 'lucide-react';
 import PageHeader from '@/components/layout/PageHeader';
 import EmptyState from '@/components/ui/EmptyState';
 import { SkeletonCard, SkeletonTable } from '@/components/ui/Skeleton';
@@ -110,38 +110,54 @@ export default function TradesPage() {
 
       {/* Trade Summary KPIs */}
       {trades.length > 0 && (
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 mb-6">
-          <KPICard 
-            label="Total Shares Traded" 
-            value={tradeSummary.totalShares} 
-            format="number" 
-            icon={Layers} 
-            color="#6C5CE7" 
-            delay={0} 
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 mb-6">
+          <KPICard
+            label="Available Cash"
+            value={settings.broker_available_cash > 0 ? settings.broker_available_cash : (settings.capital_available > 0 ? settings.capital_available - tradeSummary.buyValue + tradeSummary.sellValue : 0)}
+            format="pkr"
+            icon={Wallet}
+            color="#74B9FF"
+            delay={0}
           />
-          <KPICard 
-            label="Shares Bought" 
-            value={tradeSummary.buyShares} 
-            format="number" 
-            icon={ShoppingCart} 
-            color="#00B894" 
-            delay={50} 
+          <KPICard
+            label="Total Capital"
+            value={settings.capital_available}
+            format="pkr"
+            icon={Banknote}
+            color="#6C5CE7"
+            delay={50}
           />
-          <KPICard 
-            label="Shares Sold" 
-            value={tradeSummary.sellShares} 
-            format="number" 
-            icon={TrendingDown} 
-            color="#FF5252" 
-            delay={100} 
+          <KPICard
+            label="Total Shares Traded"
+            value={tradeSummary.totalShares}
+            format="number"
+            icon={Layers}
+            color="#00D2D3"
+            delay={100}
           />
-          <KPICard 
-            label="Net Shares Held" 
-            value={tradeSummary.netShares} 
-            format="number" 
-            icon={ArrowLeftRight} 
-            color="#00D2D3" 
-            delay={150} 
+          <KPICard
+            label="Shares Bought"
+            value={tradeSummary.buyShares}
+            format="number"
+            icon={ShoppingCart}
+            color="#00B894"
+            delay={150}
+          />
+          <KPICard
+            label="Shares Sold"
+            value={tradeSummary.sellShares}
+            format="number"
+            icon={TrendingDown}
+            color="#FF5252"
+            delay={200}
+          />
+          <KPICard
+            label="Net Shares Held"
+            value={tradeSummary.netShares}
+            format="number"
+            icon={ArrowLeftRight}
+            color="#E17055"
+            delay={250}
           />
         </div>
       )}

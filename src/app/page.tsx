@@ -62,10 +62,12 @@ export default function DashboardPage() {
     );
   }
 
-  // Cash remaining
-  const cashRemaining = settings.capital_available > 0
-    ? settings.capital_available - summary.totalInvested
-    : 0;
+  // Cash remaining — use broker available cash if set, else fallback to capital - invested
+  const cashRemaining = settings.broker_available_cash > 0
+    ? settings.broker_available_cash
+    : settings.capital_available > 0
+      ? settings.capital_available - summary.totalInvested
+      : 0;
 
   // Monthly portfolio values for chart
   const monthlyData = buildMonthlyPortfolioData(trades, summary.totalValue);
@@ -95,8 +97,8 @@ export default function DashboardPage() {
         />
         <KPICard label="Realized P&L" value={totalRealizedPL} format="pkr" icon={Banknote} color="#E17055" delay={150} />
         <KPICard label="Win Rate" value={winRate} format="percent" icon={Trophy} color="#FECA57" delay={200} />
-        {settings.capital_available > 0 && (
-          <KPICard label="Cash Remaining" value={cashRemaining} format="pkr" icon={Banknote} color="#74B9FF" delay={250} />
+        {(settings.capital_available > 0 || settings.broker_available_cash > 0) && (
+          <KPICard label="Available Cash" value={cashRemaining} format="pkr" icon={Wallet} color="#74B9FF" delay={250} />
         )}
       </div>
 
