@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { BarChart3, Layers, ShoppingCart, TrendingDown, Percent, Filter, X } from 'lucide-react';
+import { BarChart3, Layers, ShoppingCart, TrendingDown, Percent, Filter, X, Wallet, Receipt } from 'lucide-react';
 import PageHeader from '@/components/layout/PageHeader';
 import EmptyState from '@/components/ui/EmptyState';
 import { SkeletonCard, SkeletonTable } from '@/components/ui/Skeleton';
@@ -45,6 +45,20 @@ export default function AnalysisPage() {
   const hasFilters = filterSymbol || filterSector || filterType;
 
   const { monthly, quarterly, yearly, totalSharesTraded, buyShares, sellShares, winRate } = useAnalysis(filteredTrades);
+
+  // Trading cost analysis
+  const tradingCosts = useMemo(() => {
+    const totalBrokerage = filteredTrades.reduce((s, t) => s + (t.brokerage || 0), 0);
+    const totalCVT = filteredTrades.reduce((s, t) => s + (t.cvt || 0), 0);
+    const totalCommission = filteredTrades.reduce((s, t) => s + (t.commission || 0), 0);
+    const totalSST = filteredTrades.reduce((s, t) => s + (t.sst || 0), 0);
+    const totalCDC = filteredTrades.reduce((s, t) => s + (t.cdc_fee || 0), 0);
+    const totalOther = filteredTrades.reduce((s, t) => s + (t.laga || 0) + (t.secp || 0) + (t.ncs || 0) + (t.others || 0), 0);
+    const totalFees = totalBrokerage + totalCVT + totalCommission + totalSST + totalCDC + totalOther;
+    const totalBuyValue = filteredTrades.filter(t => t.trade_type === 'BUY').reduce((s, t) => s + t.net_value, 0);
+    const totalSellValue = filteredTrades.filter(t => t.trade_type === 'SELL').reduce((s, t) => s + t.net_value, 0);
+    return { totalFees, totalBrokerage, totalCVT, totalBuyValue, totalSellValue };
+  }, [filteredTrades]);
 
   // Stock breakdown: group BUY trades by symbol, sum net_value
   const stockBreakdown = useMemo(() => {
@@ -110,39 +124,13 @@ export default function AnalysisPage() {
       <PageHeader title="Analysis" subtitle="Monthly, quarterly, and yearly performance breakdowns" />
 
       {/* Summary KPIs */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 mb-6">
-        <KPICard
-          label="Total Shares Traded"
-          value={totalSharesTraded}
-          format="number"
-          icon={Layers}
-          color="#6C5CE7"
-          delay={0}
-        />
-        <KPICard
-          label="Shares Bought"
-          value={buyShares}
-          format="number"
-          icon={ShoppingCart}
-          color="#00B894"
-          delay={50}
-        />
-        <KPICard
-          label="Shares Sold"
-          value={sellShares}
-          format="number"
-          icon={TrendingDown}
-          color="#FF5252"
-          delay={100}
-        />
-        <KPICard
-          label="Win Rate"
-          value={winRate}
-          format="percent"
-          icon={Percent}
-          color="#FDCB6E"
-          delay={150}
-        />
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 mb-6">
+        <KPICard label="Total Buy Value" value={tradingCosts.totalBuyValue} format="pkr" icon={ShoppingCart} color="#00B894" delay={0} />
+        <KPICard label="Total Sell Value" value={tradingCosts.totalSellValue} format="pkr" icon={TrendingDown} color="#FF5252" delay={50} />
+        <KPICard label="Total Trading Fees" value={tradingCosts.totalFees} format="pkr" icon={Receipt} color="#E17055" delay={100} />
+        <KPICard label="Total Shares Traded" value={totalSharesTraded} format="number" icon={Layers} color="#6C5CE7" delay={150} />
+        <KPICard label="Shares Bought" value={buyShares} format="number" icon={Wallet} color="#00D2D3" delay={200} />
+        <KPICard label="Win Rate" value={winRate} format="percent" icon={Percent} color="#FDCB6E" delay={250} />
       </div>
 
       {/* Filters + Tab Navigation */}
