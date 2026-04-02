@@ -107,9 +107,18 @@ export function parseMunirKhananiStatement(text: string): ParseResult {
         continue;
       }
       
-      // Parse trade line: "T+1REG B BUY 7 198.00 0.2970 0.31 2.50 0.00 0.00 0.06 0.01 0.04 1,391.00"
+      // Parse trade line - handles multiple formats:
+      // BUY:  "T+1REG B BUY 7 198.00 0.2970 0.31 2.50 0.00 0.00 0.06 0.01 0.04 1,391.00"
+      // SELL: "T+1REG PSELL 4 200.22 0.3003 0.18 5.00 0.00 0.00 0.03 0.01 0.03 -794.43"
       // Format: Settlement Type Qty Rate Comm SST CDC CVT Others LAGA SECP NCS Amount
-      const tradeMatch = line.match(/T\+\d+REG\s+([BS])\s+(BUY|SELL)\s+([\d,]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d,.]+)/i);
+      
+      // Try standard format first: "B BUY" or "S SELL"
+      let tradeMatch = line.match(/T\+\d+REG\s+([BS])\s+(BUY|SELL)\s+([\d,]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+(-?[\d,.]+)/i);
+      
+      // Try alternate format: "PSELL" (no space)
+      if (!tradeMatch) {
+        tradeMatch = line.match(/T\+\d+REG\s+(P?)(SELL|BUY)\s+([\d,]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+(-?[\d,.]+)/i);
+      }
       
       if (tradeMatch && currentStock) {
         const [, typeCode, typeWord, qty, rate, comm, sst, cdc, cvt, others, laga, secp, ncs, amount] = tradeMatch;
