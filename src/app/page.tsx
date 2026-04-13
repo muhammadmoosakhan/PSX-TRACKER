@@ -14,28 +14,24 @@ import { SkeletonCard } from '@/components/ui/Skeleton';
 import KPICard from '@/components/dashboard/KPICard';
 import RecentTrades from '@/components/dashboard/RecentTrades';
 import TopHoldings from '@/components/dashboard/TopHoldings';
-import BrokerageAccount from '@/components/dashboard/BrokerageAccount';
 import Card from '@/components/ui/Card';
 import PieChartComponent from '@/components/charts/PieChart';
 import LineChartComponent from '@/components/charts/LineChart';
 import { useTrades } from '@/hooks/useTrades';
-import { useSettings } from '@/hooks/useSettings';
 import { useMarketData } from '@/hooks/useMarketData';
 import { usePortfolio } from '@/hooks/usePortfolio';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { formatPKRCompact } from '@/lib/formatters';
 import { getSectorDisplay } from '@/lib/constants';
-import { isCashTransaction } from '@/components/trades/DepositWithdraw';
 
 export default function DashboardPage() {
   const { trades, loading: tradesLoading } = useTrades();
-  const { settings, loading: settingsLoading } = useSettings();
   const { loading: marketLoading, getPriceMap } = useMarketData();
   const priceMap = getPriceMap();
   const { holdings, sectorAllocation, summary } = usePortfolio(trades, priceMap);
   const { winRate, totalRealizedPL } = useAnalysis(trades);
 
-  const loading = tradesLoading || settingsLoading || marketLoading;
+  const loading = tradesLoading || marketLoading;
 
   if (loading) {
     return (
@@ -62,25 +58,6 @@ export default function DashboardPage() {
       </div>
     );
   }
-
-  // Separate stock trades from cash transactions
-  const stockTrades = trades.filter(t => !isCashTransaction(t));
-  const cashTxs = trades.filter(t => isCashTransaction(t));
-  const totalDeposits = cashTxs.filter(t => t.trade_type === 'BUY').reduce((s, t) => s + t.net_value, 0);
-  const totalWithdrawals = cashTxs.filter(t => t.trade_type === 'SELL').reduce((s, t) => s + t.net_value, 0);
-  const cashDelta = totalDeposits - totalWithdrawals;
-
-  // Available cash: broker base + deposits - withdrawals - trade delta since snapshot
-  const totalBuyValue = stockTrades.filter(t => t.trade_type === 'BUY').reduce((s, t) => s + t.net_value, 0);
-  const totalSellValue = stockTrades.filter(t => t.trade_type === 'SELL').reduce((s, t) => s + t.net_value, 0);
-  const currentNetInvestment = totalBuyValue - totalSellValue;
-  const snapshotNet = settings.broker_snapshot_net_investment || 0;
-  const brokerCash = settings.broker_available_cash || 0;
-  const cashRemaining = brokerCash > 0 && snapshotNet > 0
-    ? brokerCash + cashDelta - (currentNetInvestment - snapshotNet)
-    : settings.capital_available > 0
-      ? settings.capital_available + cashDelta - currentNetInvestment
-      : 0;
 
   // Monthly portfolio values for chart
   const monthlyData = buildMonthlyPortfolioData(trades, summary.totalValue);
@@ -110,14 +87,6 @@ export default function DashboardPage() {
         />
         <KPICard label="Realized P&L" value={totalRealizedPL} format="pkr" icon={Banknote} color="#E17055" delay={150} />
         <KPICard label="Win Rate" value={winRate} format="percent" icon={Trophy} color="#FECA57" delay={200} />
-        {(settings.capital_available > 0 || settings.broker_available_cash > 0) && (
-          <KPICard label="Available Cash" value={cashRemaining} format="pkr" icon={Wallet} color="#74B9FF" delay={250} />
-        )}
-      </div>
-
-      {/* Brokerage Account */}
-      <div className="mb-6">
-        <BrokerageAccount settings={settings} availableCash={cashRemaining} cashDelta={cashDelta} />
       </div>
 
       {/* Charts Row */}

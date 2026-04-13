@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ArrowLeftRight, ShoppingCart, TrendingDown, Layers, FileUp, Wallet, Banknote } from 'lucide-react';
+import { ArrowLeftRight, ShoppingCart, TrendingDown, Layers, FileUp } from 'lucide-react';
 import PageHeader from '@/components/layout/PageHeader';
 import EmptyState from '@/components/ui/EmptyState';
 import { SkeletonCard, SkeletonTable } from '@/components/ui/Skeleton';
@@ -10,7 +10,7 @@ import KPICard from '@/components/dashboard/KPICard';
 import TradeForm from '@/components/trades/TradeForm';
 import TradeTable from '@/components/trades/TradeTable';
 import PDFImport from '@/components/trades/PDFImport';
-import DepositWithdraw, { getStockTrades, getCashTransactions } from '@/components/trades/DepositWithdraw';
+import DepositWithdraw, { getStockTrades } from '@/components/trades/DepositWithdraw';
 import { useTrades } from '@/hooks/useTrades';
 import { useSettings } from '@/hooks/useSettings';
 import { useMarketData } from '@/hooks/useMarketData';
@@ -20,7 +20,7 @@ import { PSX_COMPANY_NAMES } from '@/lib/psx-companies';
 
 export default function TradesPage() {
   const { trades, loading: tradesLoading, addTrade, bulkAddTrades, updateTrade, deleteTrade } = useTrades();
-  const { settings, loading: settingsLoading, refreshSettings } = useSettings();
+  const { settings, loading: settingsLoading } = useSettings();
   const { stocks, loading: stocksLoading } = useMarketData();
   const [editTrade, setEditTrade] = useState<Trade | null>(null);
   const [showPDFImport, setShowPDFImport] = useState(false);
@@ -29,26 +29,19 @@ export default function TradesPage() {
 
   // Separate stock trades from cash transactions
   const stockTrades = useMemo(() => getStockTrades(trades), [trades]);
-  const cashTxs = useMemo(() => getCashTransactions(trades), [trades]);
-  const totalDeposits = useMemo(() => cashTxs.filter(t => t.trade_type === 'BUY').reduce((s, t) => s + t.net_value, 0), [cashTxs]);
-  const totalWithdrawals = useMemo(() => cashTxs.filter(t => t.trade_type === 'SELL').reduce((s, t) => s + t.net_value, 0), [cashTxs]);
 
   // Calculate trade summaries (stock trades only)
   const tradeSummary = useMemo(() => {
     const buyTrades = stockTrades.filter(t => t.trade_type === 'BUY');
     const sellTrades = stockTrades.filter(t => t.trade_type === 'SELL');
-    
+
     const totalBuyShares = buyTrades.reduce((sum, t) => sum + t.quantity, 0);
     const totalSellShares = sellTrades.reduce((sum, t) => sum + t.quantity, 0);
-    const totalBuyValue = buyTrades.reduce((sum, t) => sum + (t.net_value || t.quantity * t.rate_per_share), 0);
-    const totalSellValue = sellTrades.reduce((sum, t) => sum + (t.net_value || t.quantity * t.rate_per_share), 0);
-    
+
     return {
       totalShares: totalBuyShares + totalSellShares,
       buyShares: totalBuyShares,
       sellShares: totalSellShares,
-      buyValue: totalBuyValue,
-      sellValue: totalSellValue,
       netShares: totalBuyShares - totalSellShares,
     };
   }, [stockTrades]);
@@ -86,7 +79,6 @@ export default function TradesPage() {
         secp: pt.secp,
         ncs: pt.ncs,
         others: pt.others,
-        fee_source: 'pdf' as const,
       };
     });
 
@@ -118,28 +110,6 @@ export default function TradesPage() {
       {/* Trade Summary KPIs */}
       {trades.length > 0 && (
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 mb-6">
-          <KPICard
-            label="Available Cash"
-            value={(() => {
-              const net = tradeSummary.buyValue - tradeSummary.sellValue;
-              const snap = settings.broker_snapshot_net_investment || 0;
-              const broker = settings.broker_available_cash || 0;
-              const cashDelta = totalDeposits - totalWithdrawals;
-              return broker > 0 && snap > 0 ? broker + cashDelta - (net - snap) : settings.capital_available > 0 ? settings.capital_available + cashDelta - net : 0;
-            })()}
-            format="pkr"
-            icon={Wallet}
-            color="#74B9FF"
-            delay={0}
-          />
-          <KPICard
-            label="Total Capital"
-            value={settings.capital_available}
-            format="pkr"
-            icon={Banknote}
-            color="#6C5CE7"
-            delay={50}
-          />
           <KPICard
             label="Total Shares Traded"
             value={tradeSummary.totalShares}

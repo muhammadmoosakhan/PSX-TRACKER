@@ -1,8 +1,9 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { Trade, StockCache, PortfolioHolding, SectorAllocation } from '@/types';
+import type { Trade, StockCache } from '@/types';
 import { calculateHoldings, calculateSectorAllocation } from '@/lib/calculations';
+import { getStockTrades } from '@/components/trades/DepositWithdraw';
 
 interface PortfolioSummary {
   totalValue: number;
@@ -13,7 +14,7 @@ interface PortfolioSummary {
 
 export function usePortfolio(trades: Trade[], priceMap: Record<string, StockCache>) {
   const holdings = useMemo(
-    () => calculateHoldings(trades, priceMap),
+    () => calculateHoldings(getStockTrades(trades), priceMap),
     [trades, priceMap]
   );
 
