@@ -15,6 +15,7 @@ import type {
   AppSettings,
   StockCache,
 } from '@/types';
+import { getCanonicalSymbol } from '@/lib/psx-symbols';
 
 /**
  * Calculate current holdings from trade history
@@ -65,7 +66,8 @@ export function calculateHoldings(
   for (const h of Object.values(holdingMap)) {
     const qtyHeld = h.totalBuyQty - h.totalSellQty;
     if (qtyHeld <= 0) continue;
-    const currentPrice = priceMap[h.symbol]?.current_price || 0;
+    const canonical = getCanonicalSymbol(h.symbol);
+    const currentPrice = priceMap[h.symbol]?.current_price || priceMap[canonical]?.current_price || 0;
     totalMarketValue += qtyHeld * currentPrice;
   }
 
@@ -76,7 +78,8 @@ export function calculateHoldings(
 
     const avgBuyPrice = h.totalBuyQty > 0 ? h.totalBuyValue / h.totalBuyQty : 0;
     const costBasis = qtyHeld * avgBuyPrice;
-    const stock = priceMap[h.symbol];
+    const canonical = getCanonicalSymbol(h.symbol);
+    const stock = priceMap[h.symbol] || priceMap[canonical];
     const currentPrice = stock?.current_price || 0;
     const marketValue = qtyHeld * currentPrice;
     const unrealizedPL = marketValue - costBasis;
