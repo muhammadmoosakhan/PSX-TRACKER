@@ -12,6 +12,52 @@ interface TradeFilters {
   dateTo?: string;
 }
 
+function toNumber(value: unknown): number {
+  if (value === null || value === undefined || value === '') return 0;
+  const num = Number(String(value).replace(/,/g, ''));
+  return Number.isFinite(num) ? num : 0;
+}
+
+function normalizeTradeRow(trade: Trade): Trade {
+  return {
+    ...trade,
+    quantity: toNumber(trade.quantity),
+    rate_per_share: toNumber(trade.rate_per_share),
+    gross_value: toNumber(trade.gross_value),
+    brokerage: toNumber(trade.brokerage),
+    cvt: toNumber(trade.cvt),
+    net_value: toNumber(trade.net_value),
+  };
+}
+
+function normalizeTradeInput(trade: TradeInput): TradeInput {
+  return {
+    ...trade,
+    quantity: toNumber(trade.quantity),
+    rate_per_share: toNumber(trade.rate_per_share),
+    brokerage: toNumber(trade.brokerage),
+    cvt: toNumber(trade.cvt),
+    net_value: toNumber(trade.net_value),
+  };
+}
+
+function normalizeTradeUpdate(trade: Partial<TradeInput>): Partial<TradeInput> {
+  const updates: Partial<TradeInput> = { ...trade };
+  if (trade.quantity !== undefined) updates.quantity = toNumber(trade.quantity);
+  if (trade.rate_per_share !== undefined) updates.rate_per_share = toNumber(trade.rate_per_share);
+  if (trade.brokerage !== undefined) updates.brokerage = toNumber(trade.brokerage);
+  if (trade.cvt !== undefined) updates.cvt = toNumber(trade.cvt);
+  if (trade.net_value !== undefined) updates.net_value = toNumber(trade.net_value);
+  if (trade.commission !== undefined) updates.commission = toNumber(trade.commission);
+  if (trade.sst !== undefined) updates.sst = toNumber(trade.sst);
+  if (trade.cdc_fee !== undefined) updates.cdc_fee = toNumber(trade.cdc_fee);
+  if (trade.laga !== undefined) updates.laga = toNumber(trade.laga);
+  if (trade.secp !== undefined) updates.secp = toNumber(trade.secp);
+  if (trade.ncs !== undefined) updates.ncs = toNumber(trade.ncs);
+  if (trade.others !== undefined) updates.others = toNumber(trade.others);
+  return updates;
+}
+
 async function getAuthUserId(): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   return user?.id ?? null;
@@ -56,7 +102,7 @@ export function useTrades() {
       const { data, error: err } = await query;
 
       if (err) throw err;
-      setTrades(data || []);
+      setTrades((data || []).map(normalizeTradeRow));
       setError(null);
     } catch (e) {
       console.error('Error fetching trades:', e);
@@ -79,9 +125,10 @@ export function useTrades() {
         return false;
       }
 
-      const grossValue = trade.quantity * trade.rate_per_share;
+      const normalized = normalizeTradeInput(trade);
+      const grossValue = normalized.quantity * normalized.rate_per_share;
       const { error: err } = await supabase.from('trades').insert({
-        ...trade,
+        ...normalized,
         gross_value: grossValue,
         user_id: userId,
       });
@@ -103,11 +150,14 @@ export function useTrades() {
         return false;
       }
 
-      const rows = tradeInputs.map((trade) => ({
-        ...trade,
-        gross_value: trade.quantity * trade.rate_per_share,
-        user_id: userId,
-      }));
+      const rows = tradeInputs.map((trade) => {
+        const normalized = normalizeTradeInput(trade);
+        return {
+          ...normalized,
+          gross_value: normalized.quantity * normalized.rate_per_share,
+          user_id: userId,
+        };
+      });
 
       const { error: err } = await supabase.from('trades').insert(rows);
       if (err) throw err;
@@ -121,9 +171,11 @@ export function useTrades() {
 
   const updateTrade = useCallback(async (id: string, trade: Partial<TradeInput>): Promise<boolean> => {
     try {
-      const updates: Record<string, unknown> = { ...trade };
-      if (trade.quantity && trade.rate_per_share) {
-        updates.gross_value = trade.quantity * trade.rate_per_share;
+      const updates: Record<string, unknown> = normalizeTradeUpdate(trade);
+      const qty = updates.quantity;
+      const rate = updates.rate_per_share;
+      if (qty !== undefined && rate !== undefined) {
+        updates.gross_value = Number(qty) * Number(rate);
       }
 
       const { error: err } = await supabase

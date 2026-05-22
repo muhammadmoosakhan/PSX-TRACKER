@@ -4,6 +4,8 @@
 // ============================================
 
 import type { StockCache, StockHistoryPoint, PSXIndex, IndexTickPoint } from '@/types';
+import { PSX_COMPANY_NAMES } from '@/lib/psx-companies';
+import { choosePreferredStock, getCanonicalSymbol } from '@/lib/psx-symbols';
 
 const PSX_MARKET_URL = 'https://dps.psx.com.pk/market-watch';
 const PSX_HISTORY_URL = 'https://dps.psx.com.pk/timeseries/eod';
@@ -33,25 +35,26 @@ export async function fetchPSXMarketData(): Promise<StockCache[]> {
   try {
     const json = JSON.parse(text);
     if (Array.isArray(json)) {
-      return json.map(normalizeStock);
+      return dedupeStocks(json.map(normalizeStock));
     }
     if (json.data && Array.isArray(json.data)) {
-      return json.data.map(normalizeStock);
+      return dedupeStocks(json.data.map(normalizeStock));
     }
   } catch {
     // Not JSON — parse as HTML
   }
 
-  return parseHTMLMarketData(text);
+  return dedupeStocks(parseHTMLMarketData(text));
 }
 
 /**
  * Normalize a stock object from PSX JSON
  */
 function normalizeStock(raw: Record<string, unknown>): StockCache {
+  const symbol = String(raw.SYMBOL || raw.symbol || '').trim().toUpperCase();
   return {
-    symbol: String(raw.SYMBOL || raw.symbol || ''),
-    name: String(raw.COMPANY || raw.LDCP_NAME || raw.name || raw.company || ''),
+    symbol,
+    name: String(raw.COMPANY || raw.LDCP_NAME || raw.name || raw.company || symbol),
     sector: String(raw.SECTOR || raw.sector || 'Other'),
     ldcp: toNum(raw.LDCP || raw.ldcp),
     open_price: toNum(raw.OPEN || raw.open || raw.open_price),
@@ -93,9 +96,10 @@ function parseHTMLMarketData(html: string): StockCache[] {
     const hasListedIn = cells.length >= 11;
     const offset = hasListedIn ? 1 : 0; // shift indices if "Listed In" column exists
 
+    const symbol = cells[0].trim().toUpperCase();
     stocks.push({
-      symbol: cells[0],
-      name: cells[0],
+      symbol,
+      name: symbol,
       sector: cells[1] || 'Other',
       ldcp: toNum(cells[2 + offset]),
       open_price: toNum(cells[3 + offset]),
@@ -110,6 +114,24 @@ function parseHTMLMarketData(html: string): StockCache[] {
   }
 
   return stocks;
+}
+
+function applyCompanyName(stock: StockCache): StockCache {
+  const canonical = getCanonicalSymbol(stock.symbol);
+  const name = PSX_COMPANY_NAMES[stock.symbol] || PSX_COMPANY_NAMES[canonical] || stock.name || stock.symbol;
+  if (name === stock.name) return stock;
+  return { ...stock, name };
+}
+
+function dedupeStocks(stocks: StockCache[]): StockCache[] {
+  const map = new Map<string, StockCache>();
+  for (const stock of stocks) {
+    const canonical = getCanonicalSymbol(stock.symbol);
+    const normalized = applyCompanyName(stock);
+    const existing = map.get(canonical);
+    map.set(canonical, choosePreferredStock(existing, normalized));
+  }
+  return Array.from(map.values());
 }
 
 /**

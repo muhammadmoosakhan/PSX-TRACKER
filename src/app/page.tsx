@@ -12,12 +12,14 @@ import PageHeader from '@/components/layout/PageHeader';
 import EmptyState from '@/components/ui/EmptyState';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import KPICard from '@/components/dashboard/KPICard';
+import EditableKPICard from '@/components/ui/EditableKPICard';
 import RecentTrades from '@/components/dashboard/RecentTrades';
 import TopHoldings from '@/components/dashboard/TopHoldings';
 import Card from '@/components/ui/Card';
 import PieChartComponent from '@/components/charts/PieChart';
 import LineChartComponent from '@/components/charts/LineChart';
 import { useTrades } from '@/hooks/useTrades';
+import { useSettings } from '@/hooks/useSettings';
 import { useMarketData } from '@/hooks/useMarketData';
 import { usePortfolio } from '@/hooks/usePortfolio';
 import { useAnalysis } from '@/hooks/useAnalysis';
@@ -26,12 +28,18 @@ import { getSectorDisplay } from '@/lib/constants';
 
 export default function DashboardPage() {
   const { trades, loading: tradesLoading } = useTrades();
+  const { settings, loading: settingsLoading, updateSetting } = useSettings();
   const { loading: marketLoading, getPriceMap } = useMarketData();
   const priceMap = getPriceMap();
-  const { holdings, sectorAllocation, summary } = usePortfolio(trades, priceMap);
+  const miscCharges = settings.misc_charges_total || 0;
+  const investedAdjustment = settings.total_invested_adjustment || 0;
+  const { holdings, sectorAllocation, summary } = usePortfolio(trades, priceMap, {
+    miscCharges,
+    investedAdjustment,
+  });
   const { winRate, totalRealizedPL } = useAnalysis(trades);
 
-  const loading = tradesLoading || marketLoading;
+  const loading = tradesLoading || marketLoading || settingsLoading;
 
   if (loading) {
     return (
@@ -74,8 +82,32 @@ export default function DashboardPage() {
 
       {/* KPI Row */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 mb-6 overflow-x-auto hide-scrollbar">
-        <KPICard label="Portfolio Value" value={summary.totalValue} format="pkr" icon={Wallet} color="#6C5CE7" delay={0} />
-        <KPICard label="Total Invested" value={summary.totalInvested} format="pkr" icon={PiggyBank} color="#00D2D3" delay={50} />
+        <EditableKPICard
+          label="Portfolio Value"
+          value={summary.totalValue}
+          format="pkr"
+          icon={Wallet}
+          color="#6C5CE7"
+          delay={0}
+          onSave={async (nextValue) => {
+            const delta = nextValue - summary.totalValue;
+            if (delta === 0) return true;
+            return updateSetting('misc_charges_total', miscCharges + delta);
+          }}
+        />
+        <EditableKPICard
+          label="Total Invested"
+          value={summary.totalInvested}
+          format="pkr"
+          icon={PiggyBank}
+          color="#00D2D3"
+          delay={50}
+          onSave={async (nextValue) => {
+            const delta = nextValue - summary.totalInvested;
+            if (delta === 0) return true;
+            return updateSetting('total_invested_adjustment', investedAdjustment + delta);
+          }}
+        />
         <KPICard
           label="Unrealized P&L"
           value={summary.totalPL}

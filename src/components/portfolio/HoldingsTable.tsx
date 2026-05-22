@@ -9,15 +9,27 @@ import Card from '@/components/ui/Card';
 interface HoldingsTableProps {
   holdings: PortfolioHolding[];
   onSelectStock?: (symbol: string) => void;
+  adjustments?: {
+    miscCharges?: number;
+    investedAdjustment?: number;
+  };
 }
 
-export default function HoldingsTable({ holdings, onSelectStock }: Readonly<HoldingsTableProps>) {
+export default function HoldingsTable({ holdings, onSelectStock, adjustments }: Readonly<HoldingsTableProps>) {
   const totals = {
     costBasis: holdings.reduce((s, h) => s + h.cost_basis, 0),
     marketValue: holdings.reduce((s, h) => s + h.market_value, 0),
     pl: holdings.reduce((s, h) => s + h.unrealized_pl, 0),
   };
-  const totalPLPct = totals.costBasis > 0 ? totals.pl / totals.costBasis : 0;
+  const miscCharges = adjustments?.miscCharges || 0;
+  const investedAdjustment = adjustments?.investedAdjustment || 0;
+  const adjustedTotals = {
+    costBasis: totals.costBasis + investedAdjustment,
+    marketValue: totals.marketValue + miscCharges,
+  };
+  const adjustedPL = adjustedTotals.marketValue - adjustedTotals.costBasis;
+  const adjustedPLPct = adjustedTotals.costBasis > 0 ? adjustedPL / adjustedTotals.costBasis : 0;
+  const totalPLPct = adjustments ? adjustedPLPct : totals.costBasis > 0 ? totals.pl / totals.costBasis : 0;
 
   return (
     <>
@@ -80,11 +92,45 @@ export default function HoldingsTable({ holdings, onSelectStock }: Readonly<Hold
             </tbody>
             {/* Summary Row */}
             <tfoot>
+              {miscCharges !== 0 && (
+                <tr style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-light)' }}>
+                  <td colSpan={5} className="px-3 py-3 font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+                    Misc Charges
+                  </td>
+                  <td className="px-3 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>—</td>
+                  <td className="px-3 py-3 font-mono-numbers text-sm" style={{ color: 'var(--text-primary)' }}>
+                    {formatPKR(miscCharges, 0)}
+                  </td>
+                  <td className="px-3 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>—</td>
+                  <td className="px-3 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>—</td>
+                  <td className="px-3 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>—</td>
+                </tr>
+              )}
+              {investedAdjustment !== 0 && (
+                <tr style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-light)' }}>
+                  <td colSpan={5} className="px-3 py-3 font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+                    Invested Adjustment
+                  </td>
+                  <td className="px-3 py-3 font-mono-numbers text-sm" style={{ color: 'var(--text-primary)' }}>
+                    {formatPKR(investedAdjustment, 0)}
+                  </td>
+                  <td className="px-3 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>—</td>
+                  <td className="px-3 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>—</td>
+                  <td className="px-3 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>—</td>
+                  <td className="px-3 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>—</td>
+                </tr>
+              )}
               <tr style={{ background: 'var(--bg-secondary)', borderTop: '2px solid var(--border-light)' }}>
                 <td colSpan={5} className="px-3 py-3 font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Total</td>
-                <td className="px-3 py-3 font-mono-numbers font-bold" style={{ color: 'var(--text-primary)' }}>{formatPKR(totals.costBasis, 0)}</td>
-                <td className="px-3 py-3 font-mono-numbers font-bold" style={{ color: 'var(--text-primary)' }}>{formatPKR(totals.marketValue, 0)}</td>
-                <td className={`px-3 py-3 font-mono-numbers font-bold ${plColor(totals.pl)}`}>{formatPKR(totals.pl, 0)}</td>
+                <td className="px-3 py-3 font-mono-numbers font-bold" style={{ color: 'var(--text-primary)' }}>
+                  {formatPKR(adjustments ? adjustedTotals.costBasis : totals.costBasis, 0)}
+                </td>
+                <td className="px-3 py-3 font-mono-numbers font-bold" style={{ color: 'var(--text-primary)' }}>
+                  {formatPKR(adjustments ? adjustedTotals.marketValue : totals.marketValue, 0)}
+                </td>
+                <td className={`px-3 py-3 font-mono-numbers font-bold ${plColor(adjustments ? adjustedPL : totals.pl)}`}>
+                  {formatPKR(adjustments ? adjustedPL : totals.pl, 0)}
+                </td>
                 <td className={`px-3 py-3 font-mono-numbers font-bold ${plColor(totalPLPct)}`}>{formatPercent(totalPLPct)}</td>
                 <td className="px-3 py-3 font-mono-numbers font-bold" style={{ color: 'var(--text-muted)' }}>100%</td>
               </tr>

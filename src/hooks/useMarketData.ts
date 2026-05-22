@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { StockCache, StockHistoryPoint } from '@/types';
+import { PSX_COMPANY_NAMES } from '@/lib/psx-companies';
+import { choosePreferredStock, getCanonicalSymbol } from '@/lib/psx-symbols';
 
 export function useMarketData() {
   const [stocks, setStocks] = useState<StockCache[]>([]);
@@ -17,21 +19,40 @@ export function useMarketData() {
    * Merge new stock data with existing, ensuring no stock loses its price.
    * New data wins for stocks present in both; old data kept for stocks missing from new data.
    */
+  const applyCompanyName = useCallback((stock: StockCache): StockCache => {
+    const symbol = stock.symbol.toUpperCase();
+    const canonical = getCanonicalSymbol(symbol);
+    const name = PSX_COMPANY_NAMES[symbol] || PSX_COMPANY_NAMES[canonical] || stock.name || symbol;
+    if (name === stock.name && symbol === stock.symbol) return stock;
+    return { ...stock, symbol, name };
+  }, []);
+
+  const dedupeStocks = useCallback((list: StockCache[]): StockCache[] => {
+    const map = new Map<string, StockCache>();
+    for (const stock of list) {
+      const canonical = getCanonicalSymbol(stock.symbol);
+      const normalized = applyCompanyName(stock);
+      const existing = map.get(canonical);
+      map.set(canonical, choosePreferredStock(existing, normalized));
+    }
+    return Array.from(map.values());
+  }, [applyCompanyName]);
+
   const mergeStocks = useCallback((existing: StockCache[], incoming: StockCache[]): StockCache[] => {
-    if (existing.length === 0) return incoming;
-    if (incoming.length === 0) return existing;
+    if (existing.length === 0) return dedupeStocks(incoming);
+    if (incoming.length === 0) return dedupeStocks(existing);
 
     const merged = new Map<string, StockCache>();
-    // Start with existing data
-    for (const s of existing) {
-      merged.set(s.symbol, s);
-    }
-    // Overwrite with incoming (fresh) data
-    for (const s of incoming) {
-      merged.set(s.symbol, s);
-    }
+    const insert = (stock: StockCache) => {
+      const canonical = getCanonicalSymbol(stock.symbol);
+      const normalized = applyCompanyName(stock);
+      const current = merged.get(canonical);
+      merged.set(canonical, choosePreferredStock(current, normalized));
+    };
+    for (const s of existing) insert(s);
+    for (const s of incoming) insert(s);
     return Array.from(merged.values());
-  }, []);
+  }, [applyCompanyName, dedupeStocks]);
 
   const fetchMarketData = useCallback(async (forceRefresh = false) => {
     try {
@@ -48,15 +69,16 @@ export function useMarketData() {
           .order('symbol');
 
         if (cached && cached.length > 0) {
-          setStocks(cached);
-          setLastUpdated(cached[0]?.updated_at || null);
+          const deduped = dedupeStocks(cached);
+          setStocks(deduped);
+          setLastUpdated(deduped[0]?.updated_at || null);
 
           // If cache is less than 2 minutes old, use it
           const cacheAge = Date.now() - new Date(cached[0].updated_at).getTime();
           if (cacheAge < 120000) {
             setLoading(false);
             initialLoadDone.current = true;
-            return cached;
+            return deduped;
           }
         }
       }
@@ -120,20 +142,25 @@ export function useMarketData() {
     [stocks]
   );
 
-  const getStockPrice = useCallback(
-    (symbol: string): StockCache | undefined => {
-      return stocks.find((s) => s.symbol === symbol);
-    },
-    [stocks]
-  );
-
   const priceMap = useMemo((): Record<string, StockCache> => {
     const map: Record<string, StockCache> = {};
     for (const s of stocks) {
       map[s.symbol] = s;
+      const canonical = getCanonicalSymbol(s.symbol);
+      if (!map[canonical]) {
+        map[canonical] = s;
+      }
     }
     return map;
   }, [stocks]);
+
+  const getStockPrice = useCallback(
+    (symbol: string): StockCache | undefined => {
+      const key = getCanonicalSymbol(symbol);
+      return priceMap[key] || priceMap[symbol];
+    },
+    [priceMap]
+  );
 
   const getPriceMap = useCallback((): Record<string, StockCache> => {
     return priceMap;

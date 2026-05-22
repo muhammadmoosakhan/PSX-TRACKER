@@ -131,7 +131,12 @@ export default function AdvisorPage() {
   const { settings } = useSettings();
   const { stocks, getPriceMap } = useMarketData();
   const priceMap = useMemo(() => getPriceMap(), [getPriceMap]);
-  const { holdings, sectorAllocation, summary } = usePortfolio(trades, priceMap);
+  const miscCharges = settings.misc_charges_total || 0;
+  const investedAdjustment = settings.total_invested_adjustment || 0;
+  const { holdings, sectorAllocation, summary } = usePortfolio(trades, priceMap, {
+    miscCharges,
+    investedAdjustment,
+  });
 
   // Fetch news for chatbot context
   useEffect(() => {

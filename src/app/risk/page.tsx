@@ -21,7 +21,12 @@ export default function RiskPage() {
   const { settings, loading: settingsLoading } = useSettings();
   const { loading: marketLoading, getPriceMap } = useMarketData();
   const priceMap = getPriceMap();
-  const { holdings, sectorAllocation, summary } = usePortfolio(trades, priceMap);
+  const miscCharges = settings.misc_charges_total || 0;
+  const investedAdjustment = settings.total_invested_adjustment || 0;
+  const { holdings, sectorAllocation, summary } = usePortfolio(trades, priceMap, {
+    miscCharges,
+    investedAdjustment,
+  });
   const riskMetrics = calculateRiskMetrics(holdings, settings as AppSettings);
   
   // Calculate fee analysis from actual trades

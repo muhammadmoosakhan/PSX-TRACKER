@@ -69,7 +69,12 @@ export default function SettingsPage() {
   const { trades, deleteAllTrades } = useTrades();
   const { getPriceMap } = useMarketData();
   const priceMap = getPriceMap();
-  const { holdings, sectorAllocation, summary } = usePortfolio(trades, priceMap);
+  const miscCharges = settings.misc_charges_total || 0;
+  const investedAdjustment = settings.total_invested_adjustment || 0;
+  const { holdings, sectorAllocation, summary } = usePortfolio(trades, priceMap, {
+    miscCharges,
+    investedAdjustment,
+  });
   const { theme, setTheme } = useTheme();
   const { showToast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
