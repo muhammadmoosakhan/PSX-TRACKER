@@ -111,8 +111,9 @@ export function useMarketData() {
     // Auto-refresh every 30s during PSX market hours (Mon-Fri, 9:30-15:30 PKT)
     const interval = setInterval(() => {
       const now = new Date();
-      // Convert to PKT (UTC+5)
-      const pkt = new Date(now.getTime() + (5 * 60 - now.getTimezoneOffset()) * 60000);
+      // Convert to PKT (UTC+5) reliably from local time
+      const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+      const pkt = new Date(utc + 5 * 60 * 60000);
       const day = pkt.getDay(); // 0=Sun, 6=Sat
       const hours = pkt.getHours();
       const mins = pkt.getMinutes();
