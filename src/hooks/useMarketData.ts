@@ -12,8 +12,10 @@ export function useMarketData() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const stocksRef = useRef<StockCache[]>([]);
+  const lastUpdatedRef = useRef<string | null>(null);
   const initialLoadDone = useRef(false);
   stocksRef.current = stocks;
+  lastUpdatedRef.current = lastUpdated;
 
   /**
    * Merge new stock data with existing, ensuring no stock loses its price.
@@ -119,7 +121,10 @@ export function useMarketData() {
       const mins = pkt.getMinutes();
       const timeInMins = hours * 60 + mins;
       const isMarketOpen = day >= 1 && day <= 5 && timeInMins >= 570 && timeInMins <= 930; // 9:30-15:30
-      if (isMarketOpen) {
+      const last = lastUpdatedRef.current ? new Date(lastUpdatedRef.current).getTime() : 0;
+      const ageMs = last > 0 ? Date.now() - last : Number.POSITIVE_INFINITY;
+      const shouldRefreshClosed = ageMs > 5 * 60 * 1000;
+      if (isMarketOpen || shouldRefreshClosed) {
         fetchMarketData(true);
       }
     }, 30000);
